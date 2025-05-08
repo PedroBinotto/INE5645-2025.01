@@ -1,40 +1,47 @@
-# Define compiler and compiler flags
 CXX := g++
 CXXFLAGS := -std=c++11 -Wall -Wextra -g -pedantic
 LIBFLAGS := -lncurses -pthread
 
-# Define source, object, and binary directories
+APPNAME := ticket
+
 SRCDIR := src
 OBJDIR := obj
 BINDIR := bin
 LOGDIR := log
+TARGET := $(BINDIR)/$(APPNAME)
 
-# Define source and object files
 SRCS := $(wildcard $(SRCDIR)/*.cpp)
 OBJS := $(patsubst $(SRCDIR)/%.cpp,$(OBJDIR)/%.o,$(SRCS))
 
-# Define the binary file
-TARGET := $(BINDIR)/ticket
+all: help
 
-# Default target
-all: $(TARGET)
-
-# Compile object files
 $(OBJDIR)/%.o: $(SRCDIR)/%.cpp
 	@mkdir -p $(@D)
 	$(CXX) $(CXXFLAGS) $(LIBFLAGS) -c $< -o $@
 
-# Link object files to create the binary file
 $(TARGET): $(OBJS)
 	@mkdir -p $(@D)
 	$(CXX) $(CXXFLAGS) $(LIBFLAGS) $^ -o $@ $(LIBFLAGS)
 
-# Clean up object and binary files
+.PHONY: help
+help: Makefile
+	@echo
+	@echo " Choose a make command to run"
+	@echo
+	@sed -n 's/^##//p' $< | column -t -s ':' |  sed -e 's/^/ /'
+	@echo
+
+## build: compile project to binary
+.PHONY: build
+build: $(TARGET)
+
+## clean: clean up object and binary files
+.PHONY: clean
 clean:
 	rm -rf $(OBJDIR) $(BINDIR) $(LOGDIR)
 
-run: all
+## run: build and run project
+.PHONY: run
+run: build
 	./$(TARGET)
 
-# Define phony targets
-.PHONY: all clean run
