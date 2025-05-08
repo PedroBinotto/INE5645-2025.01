@@ -1,0 +1,49 @@
+\documentclass[t]{beamer}
+\usepackage[portuguese]{babel}
+\usepackage{biblatex}
+
+\usetheme{metropolis}           % Use metropolis theme
+
+\setbeamerfont{bibliography item}{size=\tiny}
+\setbeamerfont{bibliography entry author}{size=\tiny}
+\setbeamerfont{bibliography entry title}{size=\tiny}
+\setbeamerfont{bibliography entry location}{size=\tiny}
+\setbeamerfont{bibliography entry note}{size=\tiny}
+
+\renewcommand{\footfullcite}[2][]{%
+    \footnote{\citeauthor{#2} (\citeyear{#2}): \emph{\citetitle{#2}}.}
+}
+
+\title{Título da Apresentação}
+\subtitle{Subtítulo}
+\author[Short Name (U ABC)]{%
+    \texorpdfstring{%
+        \begin{columns}
+            \column{.3\linewidth}
+            \centering
+            Pedro Santi Binotto \\ {[}20200634{]}
+        \end{columns}
+    }
+    { Pedro Santi Binotto }
+}
+\institute{Departamento de Informática e Estatística, Universidade Federal de Santa Catarina}
+\date{\today}
+
+\begin{document}
+
+    \frame{
+        \titlepage
+    }
+
+    \frame{\frametitle{Título de Slide}
+        \begin{block}{Título de Bloco}
+            Conteúdo de painel
+        \end{block}
+    }
+
+    \frame{\frametitle{Bibliografia}
+      \printbibliography[heading=none]
+    }
+
+\end{document}
+
