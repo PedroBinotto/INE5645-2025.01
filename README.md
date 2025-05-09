@@ -10,10 +10,10 @@ Repositório para as atividades da disciplina INE5645 - Programação Paralela e
     - [**project**](https://github.com/PedroBinotto/INE5645-2025.01/tree/main/trabalho_1/project) - Entrega do trabalho - implementação e documentação;
     - [**slides**](https://github.com/PedroBinotto/INE5645-2025.01/tree/main/trabalho_1/slides) - Apresentação do primeiro trabalho;
 
-<summary>
-Mostrar visualização em árvore
 <details>
-<pre>
+<summary> Mostrar visualização em árvore </summary>
+
+```
 .
 └── trabalho_1
     ├── project
@@ -28,7 +28,6 @@ Mostrar visualização em árvore
             ├── .gitignore
             ├── presentation.tex
             └── references.bib
-</pre>
+```
 </details>
-</summary>
 
