@@ -43,5 +43,4 @@ clean:
 ## run: build and run project
 .PHONY: run
 run: build
-	./$(TARGET)
-
+	./$(TARGET) $(ARGS)
