@@ -1,5 +1,5 @@
 CXX := g++
-CXXFLAGS := -std=c++11 -Wall -Wextra -g -pedantic
+CXXFLAGS := -std=c++17 -Wall -Wextra -g -pedantic
 LIBFLAGS := -lncurses -pthread
 
 APPNAME := restaurant
@@ -40,7 +40,8 @@ build: $(TARGET)
 clean:
 	rm -rf $(OBJDIR) $(BINDIR) $(LOGDIR)
 
-## run: build and run project
+## run: build and run project;
+## run $(ARGS): run with command line args via `make run ARGS="<arg1, arg2 ...>"`
 .PHONY: run
 run: build
 	./$(TARGET) $(ARGS)

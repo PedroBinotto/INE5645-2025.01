@@ -8,6 +8,13 @@
 #include <utility>
 #include <vector>
 
+// std::cout << "\033[31mRed Text\033[0m\n";         Red
+// std::cout << "\033[32mGreen Text\033[0m\n";       Green
+// std::cout << "\033[33mYellow Text\033[0m\n";      Yellow
+// std::cout << "\033[34mBlue Text\033[0m\n";        Blue
+// std::cout << "\033[1;35mBold Magenta\033[0m\n";   Bold + Magenta
+// std::cout << "\033[0mNormal Text\n";              Normal
+
 #define DEFAULT_NUM_COZINHEIROS 3
 #define DEFAULT_NUM_CLIENTES 3
 
@@ -30,21 +37,22 @@ inline int system_time() { return std::chrono::system_clock::now().time_since_ep
 inline std::pair<int, int> capture_args(int argc, const char **argv) {
   switch (argc) {
   case 1:
-    std::cout << "[NUM_COZINHEIROS, NUM_CLIENTES] não informados; usando parâmetros padrão: " << std::endl;
+    std::cout << "\033[33m[NUM_COZINHEIROS, NUM_CLIENTES] não informados; usando parâmetros padrão: \033[0m"
+              << std::endl;
     print_vec<int>({DEFAULT_NUM_COZINHEIROS, DEFAULT_NUM_CLIENTES});
 
     return std::pair<int, int>(DEFAULT_NUM_COZINHEIROS, DEFAULT_NUM_CLIENTES);
     break;
   case 3:
-    std::cout << "Usando parâmetros [NUM_COZINHEIROS, NUM_CLIENTES] informados: " << std::endl;
+    std::cout << "\033[33mUsando parâmetros [NUM_COZINHEIROS, NUM_CLIENTES] informados: \033[0m\n" << std::endl;
     print_vec(std::vector<std::string>(argv + 1, argv + argc));
 
     return std::pair<int, int>(std::stoi(argv[1]), std::stoi(argv[2]));
     break;
   default:
-    std::cerr << "Entrada inválida: " << std::endl;
+    std::cerr << "\033[31mEntrada inválida: \033[0m" << std::endl;
     print_vec(std::vector<std::string>(argv + 1, argv + argc));
-    std::cout << "Deve ser " << argv[0] << " <NUM_COZINHEIROS, NUM_CLIENTES>" << std::endl;
+    std::cout << "\033[31mDeve ser " << argv[0] << " <NUM_COZINHEIROS, NUM_CLIENTES>\033[0m" << std::endl;
 
     exit(1);
   }

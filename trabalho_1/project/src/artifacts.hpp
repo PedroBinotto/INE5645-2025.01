@@ -3,6 +3,7 @@
 
 #include <condition_variable>
 #include <cstdlib>
+#include <optional>
 #include <queue>
 
 struct barrier {
@@ -31,12 +32,12 @@ public:
     cv.notify_one();
   }
 
-  T pop() {
+  std::optional<T> pop() {
     std::unique_lock<std::mutex> lock(mutex);
     cv.wait(lock, [this] { return !elements.empty(); });
 
     if (elements.empty())
-      return nullptr;
+      return std::nullopt;
 
     T element = elements.front();
     elements.pop();
