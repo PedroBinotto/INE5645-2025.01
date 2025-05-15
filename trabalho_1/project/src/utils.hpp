@@ -4,6 +4,7 @@
 #include <ostream>
 #include <random>
 #include <string>
+#include <thread>
 #include <utility>
 #include <vector>
 
@@ -64,7 +65,7 @@ generate_cook_name(std::vector<std::string> firstnames = {"Juliana", "Bruna", "M
   return firstnames[firstname_d(rng)] + " " + lastnames[lastname_d(rng)];
 }
 
-/* Print greeting message to the screen and make obligatory french joke.
+/* Print greeting message to the screen.
  */
 inline void print_greeting() {
   std::vector<std::string> frenchy_firstnames{"Jean",     "Pierre",  "Jacques",  "Michel", "Sophie",
@@ -73,6 +74,24 @@ inline void print_greeting() {
                                              "Lefèvre", "Moreau", "Dupont",  "Fontaine"};
 
   std::string head_cook_name = generate_cook_name(frenchy_firstnames, frenchy_lastnames);
+
+  std::cout << std::endl;
+  std::cout << "*****************************************************************************" << std::endl;
+  std::cout << std::endl;
+  std::cout << "Bienvenue, monsieur ou madame, seja calorosamente bem-vindo ao" << std::endl;
+  std::cout << "Chez L’Exagéré, o restaurante francês onde a elegância é obrigatória e o" << std::endl;
+  std::cout << "cardápio, praticamente ilegível." << std::endl;
+  std::cout << std::endl;
+  std::cout << "Aqui, cada prato é uma obra de arte — e, convenhamos, o preço também." << std::endl;
+  std::cout << std::endl;
+  std::cout << "Nosso menu é elaborado diariamente — ou, como preferimos dizer," << std::endl;
+  std::cout << "emocionalmente — pelo renomado chef " << head_cook_name << ", que acredita firmemente" << std::endl;
+  std::cout << "que manteiga é um estado de espírito." << std::endl;
+  std::cout << std::endl;
+  std::cout << "*****************************************************************************" << std::endl;
+  std::cout << std::endl;
+
+  std::this_thread::sleep_for(std::chrono::milliseconds(5000));
 }
 
 /* Thread-safe implementation of stdout print (with timestamp)
@@ -82,3 +101,7 @@ inline void thread_safe_print(const std::string &s, std::mutex &m) {
 
   std::cout << "[" << system_time() << "] " << s << std::endl;
 }
+
+/* Returns random delay time between 0 and 9 seconds
+ */
+inline int get_random_delay_millis() { return (system_time() % 9) * 1000; }
