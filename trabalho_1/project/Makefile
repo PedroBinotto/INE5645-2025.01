@@ -2,7 +2,7 @@ CXX := g++
 CXXFLAGS := -std=c++11 -Wall -Wextra -g -pedantic
 LIBFLAGS := -lncurses -pthread
 
-APPNAME := ticket
+APPNAME := restaurant
 
 SRCDIR := src
 OBJDIR := obj

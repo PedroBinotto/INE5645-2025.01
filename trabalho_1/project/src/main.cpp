@@ -1,43 +1,50 @@
+#include "artifacts.hpp"
+#include "utils.hpp"
 #include <cstdlib>
 #include <iostream>
 #include <ostream>
+#include <random>
 #include <string>
+#include <thread>
+#include <utility>
 #include <vector>
 
-#define DEFAULT_N_1 3
-#define DEFAULT_N_2 3
+std::mutex cout_lock;
+bool open;
 
-template <typename T> void print_list(const std::vector<T> &list, const std::string &sep = ", ") {
-  for (size_t i = 0; i < list.size(); ++i)
-    std::cout << list[i] << ((i == list.size() - 1) ? "\n" : sep);
+void cook(int id, std::string name, int time_offset, barrier &kitchen_barrier) {
+  std::this_thread::sleep_for(std::chrono::milliseconds(time_offset));
+  thread_safe_print("Cozinheiro " + name + " (id: " + std::to_string(id) + ") chegou para trabalhar", cout_lock);
+  kitchen_barrier.wait();
+}
+
+void client(int id) {}
+
+void run_simulation(int cooks, int clients) {
+  barrier kitchen_barrier(cooks + 1);
+  std::vector<std::thread> cook_threads;
+  std::mt19937 rng{std::random_device{}()};
+
+  std::cout << "Restaurante abrirá em breve" << std::endl;
+
+  for (int i = 1; i <= cooks; ++i) {
+    int time = (system_time() % 9) * 1000;
+    cook_threads.emplace_back(cook, i, generate_cook_name(), time, std::ref(kitchen_barrier));
+  }
+
+  kitchen_barrier.wait();
+
+  open = true;
+  std::cout << "Cozinha está funcionando!" << std::endl;
 }
 
 int main(int argc, const char **argv) {
-  int a, b;
+  std::pair<int, int> params = capture_args(argc, argv);
 
-  switch (argc) {
-  case 1:
-    std::cout << "`DEFAULT_N_1, DEFAULT_N_2` não informados; usando parâmetros padrão: " << std::endl;
-    print_list<int>({DEFAULT_N_1, DEFAULT_N_2});
+  print_greeting();
+  std::cout << "Iniciando simulação" << std::endl;
 
-    a = DEFAULT_N_1;
-    b = DEFAULT_N_1;
-    break;
-  case 3:
-    std::cout << "Usando parâmetros informados: " << std::endl;
-    print_list(std::vector<std::string>(argv + 1, argv + argc));
-
-    a = std::stoi(argv[1]);
-    b = std::stoi(argv[2]);
-    break;
-  default:
-    std::cerr << "Entrada inválida: " << std::endl;
-    print_list(std::vector<std::string>(argv + 1, argv + argc));
-    std::cout << "Deve ser X, Y Z" << std::endl;
-
-    exit(1);
-  }
-  // Perform actual operations
+  run_simulation(params.first, params.second);
 
   return 0;
 }

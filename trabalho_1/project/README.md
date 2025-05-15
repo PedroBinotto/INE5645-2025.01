@@ -39,7 +39,7 @@ pedro@machine ➜ project (main) make
 ```bash
 pedro@machine ➜ project (main) make build
 g++ -std=c++11 -Wall -Wextra -g -pedantic -lncurses -pthread -c src/main.cpp -o obj/main.o
-g++ -std=c++11 -Wall -Wextra -g -pedantic -lncurses -pthread obj/main.o -o bin/ticket -lncurses -pthread
+g++ -std=c++11 -Wall -Wextra -g -pedantic -lncurses -pthread obj/main.o -o bin/restaurant -lncurses -pthread
 ```
 
 ---
@@ -48,7 +48,7 @@ g++ -std=c++11 -Wall -Wextra -g -pedantic -lncurses -pthread obj/main.o -o bin/t
 
 ```bash
 pedro@machine ➜ project (main) make run
-./bin/ticket
+./bin/restaurant
 Hello!
 ```
 
