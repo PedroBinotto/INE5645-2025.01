@@ -19,6 +19,18 @@ public:
   void wait();
 };
 
+struct counting_semaphore {
+private:
+  std::mutex mutex;
+  std::condition_variable cv;
+  int count;
+
+public:
+  counting_semaphore(int initial_count);
+  void acquire();
+  void release();
+};
+
 template <typename T> struct synchronizing_queue {
 private:
   std::queue<T> elements;
