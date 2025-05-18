@@ -11,13 +11,6 @@
 #include <thread>
 #include <vector>
 
-// std::cout << "\033[31mRed Text\033[0m\n";         Red
-// std::cout << "\033[32mGreen Text\033[0m\n";       Green
-// std::cout << "\033[33mYellow Text\033[0m\n";      Yellow
-// std::cout << "\033[34mBlue Text\033[0m\n";        Blue
-// std::cout << "\033[1;35mBold Magenta\033[0m\n";   Bold + Magenta
-// std::cout << "\033[0mNormal Text\n";              Normal
-
 #define DEFAULT_TEMPO_FECHAMENTO_RESTAURANTE_SEGUNDOS 15
 #define DEFAULT_NUM_COZINHEIROS 5
 #define DEFAULT_NUM_CLIENTES 30
@@ -36,8 +29,8 @@ template <typename T> inline void print_vec(const std::vector<T> &list, const st
  */
 inline int system_time() { return std::chrono::system_clock::now().time_since_epoch().count() % 100000000; }
 
-/* Resolves params (NUM_COZINHEIROS, NUM_CLIENTES, NUM_FOGOES, NUM_FORNOS) from `stdin` or returns default values when
- * not informed.
+/* Resolves params (NUM_COZINHEIROS, NUM_CLIENTES, NUM_FOGOES, NUM_FORNOS, TEMPO_FECHAMENTO_RESTAURANTE_SEGUNDOS) from
+ * `stdin` or returns default values when not informed.
  *
  * Exits with error status if invalid input is passed in.
  */
