@@ -11,11 +11,11 @@
 #include <thread>
 #include <vector>
 
-#define DEFAULT_TEMPO_FECHAMENTO_RESTAURANTE_SEGUNDOS 15
 #define DEFAULT_NUM_COZINHEIROS 5
 #define DEFAULT_NUM_CLIENTES 30
 #define DEFAULT_NUM_FOGOES 2
 #define DEFAULT_NUM_FORNOS 2
+#define DEFAULT_TEMPO_FECHAMENTO_RESTAURANTE_SEGUNDOS 15
 
 /* Pretty-prints vector representation to `stdout`.
  */
@@ -88,7 +88,7 @@ inline program_args capture_args(int argc, const char **argv) {
               << std::endl;
     std::cout
         << "\033[31mDeve ser " << argv[0]
-        << " <NUM_COZINHEIROS, NUM_CLIENTES, NUM_FOGOES, NUM_FORNOS, TEMPO_FECHAMENTO_RESTAURANTE_SEGUNDOS>\033[0m ou"
+        << " <NUM_COZINHEIROS, NUM_CLIENTES, NUM_FOGOES, NUM_FORNOS, TEMPO_FECHAMENTO_RESTAURANTE_SEGUNDOS>\033[0m"
         << std::endl;
 
     exit(1);
