@@ -12,7 +12,6 @@ struct order {
   int id;
   int client_id;
   int preparation_time_millis;
-  bool ready;
 
   order(int id, int client_id, int preparation_time_millis)
       : id(id), client_id(client_id), preparation_time_millis(preparation_time_millis) {}

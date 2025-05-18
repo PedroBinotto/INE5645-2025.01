@@ -51,7 +51,9 @@ void cook(int id, std::string name, int time_offset_millis, barrier &kitchen_bar
 
   thread_safe_print(format_message("começou a trabalhar"), cout_lock);
 
-  while (is_open || !orders_in.empty()) {
+  while (
+      is_open ||
+      !orders_in.empty()) { // Do perpetually until both the restaurant is closed AND there are no more orders on queue
     std::optional<order> maybe_order = orders_in.pop();
 
     if (!maybe_order.has_value())
@@ -88,13 +90,12 @@ void cook(int id, std::string name, int time_offset_millis, barrier &kitchen_bar
       ovens.release();
     }
 
-    current.ready = true;
     thread_safe_print(format_message("finalizou pedido " + std::to_string(current.id) + " do cliente " +
                                      std::to_string(current.client_id)),
                       cout_lock);
-    orders_completed_by_cook[id].second.push_back(current);
 
     subscriptions.notify(current.id, current);
+    orders_completed_by_cook[id].second.push_back(current);
   }
 
   thread_safe_print(format_message("encerrou o turno"), cout_lock);
