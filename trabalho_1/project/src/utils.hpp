@@ -5,7 +5,7 @@
 #include <random>
 #include <string>
 #include <thread>
-#include <utility>
+#include <tuple>
 #include <vector>
 
 // std::cout << "\033[31mRed Text\033[0m\n";         Red
@@ -16,7 +16,9 @@
 // std::cout << "\033[0mNormal Text\n";              Normal
 
 #define DEFAULT_NUM_COZINHEIROS 3
-#define DEFAULT_NUM_CLIENTES 3
+#define DEFAULT_NUM_CLIENTES 20
+#define DEFAULT_NUM_FOGOES 2
+#define DEFAULT_NUM_FORNOS 2
 
 /* Pretty-prints vector representation to `stdout`.
  */
@@ -30,29 +32,50 @@ template <typename T> inline void print_vec(const std::vector<T> &list, const st
  */
 inline int system_time() { return std::chrono::system_clock::now().time_since_epoch().count() % 100000000; }
 
-/* Resolves params (NUM_COZINHEIROS, NUM_CLIENTES) from `stdin` or returns default values when not informed.
+/* Resolves params (NUM_COZINHEIROS, NUM_CLIENTES, NUM_FOGOES, NUM_FORNOS) from `stdin` or returns default values when
+ * not informed.
  *
  * Exits with error status if invalid input is passed in.
  */
-inline std::pair<int, int> capture_args(int argc, const char **argv) {
+inline std::tuple<int, int, int, int> capture_args(int argc, const char **argv) {
   switch (argc) {
   case 1:
     std::cout << "\033[33m[NUM_COZINHEIROS, NUM_CLIENTES] não informados; usando parâmetros padrão: \033[0m"
               << std::endl;
     print_vec<int>({DEFAULT_NUM_COZINHEIROS, DEFAULT_NUM_CLIENTES});
 
-    return std::pair<int, int>(DEFAULT_NUM_COZINHEIROS, DEFAULT_NUM_CLIENTES);
+    std::cout << "\033[33m[NUM_FOGOES, NUM_FORNOS] não informados; usando parâmetros padrão: \033[0m" << std::endl;
+    print_vec<int>({DEFAULT_NUM_FOGOES, DEFAULT_NUM_FORNOS});
+
+    return std::tuple<int, int, int, int>(DEFAULT_NUM_COZINHEIROS, DEFAULT_NUM_CLIENTES, DEFAULT_NUM_FOGOES,
+                                          DEFAULT_NUM_FORNOS);
     break;
   case 3:
-    std::cout << "\033[33mUsando parâmetros [NUM_COZINHEIROS, NUM_CLIENTES] informados: \033[0m\n" << std::endl;
+    std::cout << "\033[33mUsando parâmetros [NUM_COZINHEIROS, NUM_CLIENTES] informados: \033[0m" << std::endl;
     print_vec(std::vector<std::string>(argv + 1, argv + argc));
 
-    return std::pair<int, int>(std::stoi(argv[1]), std::stoi(argv[2]));
+    std::cout << "\033[33m[NUM_FOGOES, NUM_FORNOS] não informados; usando parâmetros padrão: \033[0m" << std::endl;
+    print_vec<int>({DEFAULT_NUM_FOGOES, DEFAULT_NUM_FORNOS});
+
+    return std::tuple<int, int, int, int>(std::stoi(argv[1]), std::stoi(argv[2]), DEFAULT_NUM_FOGOES,
+                                          DEFAULT_NUM_FORNOS);
+    break;
+  case 5:
+    std::cout << "\033[33mUsando parâmetros [NUM_COZINHEIROS, NUM_CLIENTES] informados: \033[0m" << std::endl;
+    print_vec(std::vector<std::string>(argv + 1, argv + argc));
+
+    std::cout << "\033[33mUsando parâmetros [NUM_FOGOES, NUM_FORNOS] informados: \033[0m" << std::endl;
+    print_vec(std::vector<std::string>(argv + 1, argv + argc));
+
+    return std::tuple<int, int, int, int>(std::stoi(argv[1]), std::stoi(argv[2]), std::stoi(argv[3]),
+                                          std::stoi(argv[4]));
     break;
   default:
     std::cerr << "\033[31mEntrada inválida: \033[0m" << std::endl;
     print_vec(std::vector<std::string>(argv + 1, argv + argc));
-    std::cout << "\033[31mDeve ser " << argv[0] << " <NUM_COZINHEIROS, NUM_CLIENTES>\033[0m" << std::endl;
+    std::cout << "\033[31mDeve ser " << argv[0] << " <NUM_COZINHEIROS, NUM_CLIENTES>\033[0m ou" << std::endl;
+    std::cout << "\033[31mDeve ser " << argv[0] << " <NUM_COZINHEIROS, NUM_CLIENTES, NUM_FOGOES, NUM_FORNOS>\033[0m"
+              << std::endl;
 
     exit(1);
   }
@@ -100,6 +123,8 @@ inline void print_greeting() {
   std::cout << std::endl;
 
   std::this_thread::sleep_for(std::chrono::milliseconds(5000));
+
+  std::cout << "\033[32mIniciando simulação\033[0m" << std::endl;
 }
 
 /* Thread-safe implementation of stdout print (with timestamp)
@@ -110,6 +135,6 @@ inline void thread_safe_print(const std::string &s, std::mutex &m) {
   std::cout << "[" << system_time() << "] " << s << std::endl;
 }
 
-/* Returns random delay time between 0 and 9 seconds
+/* Returns random delay time between 0 and `max_seconds` seconds (DEFAULT=9).
  */
-inline int get_random_delay_millis() { return (system_time() % 9) * 1000; }
+inline int get_random_delay_millis(int max_seconds = 9) { return (system_time() % max_seconds) * 1000; }

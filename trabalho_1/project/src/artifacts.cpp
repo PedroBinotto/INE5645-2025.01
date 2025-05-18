@@ -24,7 +24,9 @@ void counting_semaphore::acquire() {
 }
 
 void counting_semaphore::release() {
-  std::lock_guard<std::mutex> lock(mutex);
-  count++;
+  {
+    std::lock_guard<std::mutex> lock(mutex);
+    count++;
+  }
   cv.notify_one();
 }

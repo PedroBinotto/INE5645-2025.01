@@ -3,8 +3,11 @@
 
 #include <condition_variable>
 #include <cstdlib>
+#include <functional>
 #include <optional>
 #include <queue>
+#include <unordered_map>
+#include <vector>
 
 struct barrier {
 private:
@@ -39,8 +42,11 @@ private:
 
 public:
   void push(const T &element) {
-    std::lock_guard<std::mutex> lock(mutex);
-    elements.push(element);
+    {
+
+      std::lock_guard<std::mutex> lock(mutex);
+      elements.push(element);
+    }
     cv.notify_one();
   }
 
@@ -56,6 +62,17 @@ public:
     return element;
   }
 
+  std::optional<T> peek() {
+    std::unique_lock<std::mutex> lock(mutex);
+    cv.wait(lock, [this] { return !elements.empty(); });
+
+    if (elements.empty())
+      return std::nullopt;
+
+    T element = elements.front();
+    return element;
+  }
+
   size_t size() {
     std::lock_guard<std::mutex> lock(mutex);
     return elements.size();
@@ -65,6 +82,26 @@ public:
     std::lock_guard<std::mutex> lock(mutex);
     return elements.empty();
   }
+};
+
+template <typename T, typename U> struct observer_subject {
+public:
+  void subscribe(T event_id, std::function<void(const U &)> callback) {
+    std::lock_guard<std::mutex> lock(m);
+    subscriptions[event_id].push_back(std::move(callback));
+  }
+
+  void notify(T event_id, const U &event) {
+    std::lock_guard<std::mutex> lock(m);
+    std::vector<std::function<void(const U &)>> fs = subscriptions[event_id];
+    for (std::function<void(const U &)> callback : fs) {
+      callback(event);
+    }
+  }
+
+private:
+  std::unordered_map<T, std::vector<std::function<void(const U &)>>> subscriptions;
+  std::mutex m;
 };
 
 #endif
