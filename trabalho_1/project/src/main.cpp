@@ -1,4 +1,5 @@
-#include "artifacts.hpp"
+#include "sync_lib.hpp"
+#include "types.hpp"
 #include "utils.hpp"
 #include <atomic>
 #include <condition_variable>
@@ -10,29 +11,23 @@
 #include <string>
 #include <thread>
 #include <tuple>
+#include <utility>
 #include <vector>
 
 #define RESTAURANT_CLOSING_TIME_MILLIS 15000 // 15 seconds
 
-struct order {
-  int id;
-  int client_id;
-  int preparation_time_millis;
-  bool ready;
-
-  order(int id, int client_id, int preparation_time_millis)
-      : id(id), client_id(client_id), preparation_time_millis(preparation_time_millis) {}
-};
-
 std::mutex cout_lock;
-std::atomic<bool> is_open = true;
-std::atomic<int> total_orders{0};
-std::atomic<int> next_order_id{0};
+std::atomic<bool> is_open{true};
+std::atomic<int> next_order_id{1};
 synchronizing_queue<order> orders_in;
 std::vector<std::thread> cook_threads;
 std::vector<std::thread> client_threads;
 std::mt19937 rng{std::random_device{}()};
 observer_subject<int, order> subscriptions;
+
+std::atomic<int> total_orders_denied{0};
+std::atomic<int> total_orders_accepted{0};
+logbook orders_completed_by_cook;
 
 /* Function to be passed to timer thread. Closes the restaurant for new orders after `time_millis` milliseconds
  */
@@ -49,6 +44,7 @@ void cook(int id, std::string name, int time_offset_millis, barrier &kitchen_bar
   std::function<std::string(std::string)> format_message = [id, name](std::string message) {
     return "Cozinheiro " + name + " (id: " + std::to_string(id) + ") " + message;
   };
+  orders_completed_by_cook[id] = std::make_pair(name, std::vector<order>());
 
   std::this_thread::sleep_for(std::chrono::milliseconds(time_offset_millis));
   thread_safe_print(format_message("chegou para trabalhar"), cout_lock);
@@ -98,6 +94,7 @@ void cook(int id, std::string name, int time_offset_millis, barrier &kitchen_bar
     thread_safe_print(format_message("finalizou pedido " + std::to_string(current.id) + " do cliente " +
                                      std::to_string(current.client_id)),
                       cout_lock);
+    orders_completed_by_cook[id].second.push_back(current);
 
     subscriptions.notify(current.id, current);
   }
@@ -132,7 +129,7 @@ void client(int id, int time_offset_millis) {
     });
 
     orders_in.push(client_order);
-    total_orders++;
+    total_orders_accepted++;
 
     thread_safe_print(format_message("aguardando pedido " + std::to_string(client_order.id)), cout_lock);
 
@@ -143,6 +140,7 @@ void client(int id, int time_offset_millis) {
 
     thread_safe_print(format_message("recebeu pedido " + std::to_string(client_order.id)), cout_lock);
   } else {
+    total_orders_denied++;
     thread_safe_print(format_message("desistiu de fazer um pedido pois restaurante está fechado"), cout_lock);
   }
 
@@ -178,14 +176,21 @@ void run_simulation(int n_cooks, int n_clients, int n_ovens, int n_stoves) {
   }
 
   closing_timer.join();
+
+  for (std::thread &t : cook_threads) {
+    t.join();
+  }
 }
 
 int main(int argc, const char **argv) {
-  std::tuple<int, int, int, int> params = capture_args(argc, argv);
+  program_args params = capture_args(argc, argv);
 
   print_greeting();
 
   std::apply(run_simulation, params);
+
+  print_goodbye(stats(RESTAURANT_CLOSING_TIME_MILLIS, total_orders_accepted, total_orders_denied,
+                      std::ref(orders_completed_by_cook)));
 
   return 0;
 }

@@ -1,3 +1,7 @@
+#ifndef __UTILS_H__
+#define __UTILS_H__
+
+#include "types.hpp"
 #include <cstdlib>
 #include <iostream>
 #include <mutex>
@@ -5,7 +9,6 @@
 #include <random>
 #include <string>
 #include <thread>
-#include <tuple>
 #include <vector>
 
 // std::cout << "\033[31mRed Text\033[0m\n";         Red
@@ -15,8 +18,8 @@
 // std::cout << "\033[1;35mBold Magenta\033[0m\n";   Bold + Magenta
 // std::cout << "\033[0mNormal Text\n";              Normal
 
-#define DEFAULT_NUM_COZINHEIROS 3
-#define DEFAULT_NUM_CLIENTES 20
+#define DEFAULT_NUM_COZINHEIROS 5
+#define DEFAULT_NUM_CLIENTES 30
 #define DEFAULT_NUM_FOGOES 2
 #define DEFAULT_NUM_FORNOS 2
 
@@ -37,7 +40,7 @@ inline int system_time() { return std::chrono::system_clock::now().time_since_ep
  *
  * Exits with error status if invalid input is passed in.
  */
-inline std::tuple<int, int, int, int> capture_args(int argc, const char **argv) {
+inline program_args capture_args(int argc, const char **argv) {
   switch (argc) {
   case 1:
     std::cout << "\033[33m[NUM_COZINHEIROS, NUM_CLIENTES] não informados; usando parâmetros padrão: \033[0m"
@@ -47,8 +50,7 @@ inline std::tuple<int, int, int, int> capture_args(int argc, const char **argv) 
     std::cout << "\033[33m[NUM_FOGOES, NUM_FORNOS] não informados; usando parâmetros padrão: \033[0m" << std::endl;
     print_vec<int>({DEFAULT_NUM_FOGOES, DEFAULT_NUM_FORNOS});
 
-    return std::tuple<int, int, int, int>(DEFAULT_NUM_COZINHEIROS, DEFAULT_NUM_CLIENTES, DEFAULT_NUM_FOGOES,
-                                          DEFAULT_NUM_FORNOS);
+    return program_args(DEFAULT_NUM_COZINHEIROS, DEFAULT_NUM_CLIENTES, DEFAULT_NUM_FOGOES, DEFAULT_NUM_FORNOS);
     break;
   case 3:
     std::cout << "\033[33mUsando parâmetros [NUM_COZINHEIROS, NUM_CLIENTES] informados: \033[0m" << std::endl;
@@ -57,8 +59,7 @@ inline std::tuple<int, int, int, int> capture_args(int argc, const char **argv) 
     std::cout << "\033[33m[NUM_FOGOES, NUM_FORNOS] não informados; usando parâmetros padrão: \033[0m" << std::endl;
     print_vec<int>({DEFAULT_NUM_FOGOES, DEFAULT_NUM_FORNOS});
 
-    return std::tuple<int, int, int, int>(std::stoi(argv[1]), std::stoi(argv[2]), DEFAULT_NUM_FOGOES,
-                                          DEFAULT_NUM_FORNOS);
+    return program_args(std::stoi(argv[1]), std::stoi(argv[2]), DEFAULT_NUM_FOGOES, DEFAULT_NUM_FORNOS);
     break;
   case 5:
     std::cout << "\033[33mUsando parâmetros [NUM_COZINHEIROS, NUM_CLIENTES] informados: \033[0m" << std::endl;
@@ -67,8 +68,7 @@ inline std::tuple<int, int, int, int> capture_args(int argc, const char **argv) 
     std::cout << "\033[33mUsando parâmetros [NUM_FOGOES, NUM_FORNOS] informados: \033[0m" << std::endl;
     print_vec(std::vector<std::string>(argv + 1, argv + argc));
 
-    return std::tuple<int, int, int, int>(std::stoi(argv[1]), std::stoi(argv[2]), std::stoi(argv[3]),
-                                          std::stoi(argv[4]));
+    return program_args(std::stoi(argv[1]), std::stoi(argv[2]), std::stoi(argv[3]), std::stoi(argv[4]));
     break;
   default:
     std::cerr << "\033[31mEntrada inválida: \033[0m" << std::endl;
@@ -96,6 +96,18 @@ generate_cook_name(std::vector<std::string> firstnames = {"Juliana", "Bruna", "M
   return firstnames[firstname_d(rng)] + " " + lastnames[lastname_d(rng)];
 }
 
+/* Print blank line
+ */
+inline void print_blank_line() { std::cout << std::endl; }
+
+/* Print horizontal break
+ */
+inline void print_hline() {
+  print_blank_line();
+  std::cout << "*****************************************************************************" << std::endl;
+  print_blank_line();
+}
+
 /* Print greeting message to the screen.
  */
 inline void print_greeting() {
@@ -106,25 +118,54 @@ inline void print_greeting() {
 
   std::string head_cook_name = generate_cook_name(frenchy_firstnames, frenchy_lastnames);
 
-  std::cout << std::endl;
-  std::cout << "*****************************************************************************" << std::endl;
-  std::cout << std::endl;
+  print_hline();
   std::cout << "Bienvenue, monsieur ou madame, seja calorosamente bem-vindo ao" << std::endl;
   std::cout << "Chez L’Exagéré, o restaurante francês onde a elegância é obrigatória e o" << std::endl;
   std::cout << "cardápio, praticamente ilegível." << std::endl;
-  std::cout << std::endl;
+  print_blank_line();
   std::cout << "Aqui, cada prato é uma obra de arte — e, convenhamos, o preço também." << std::endl;
-  std::cout << std::endl;
+  print_blank_line();
   std::cout << "Nosso menu é elaborado diariamente — ou, como preferimos dizer," << std::endl;
   std::cout << "emocionalmente — pelo renomado chef " << head_cook_name << ", que acredita firmemente" << std::endl;
   std::cout << "que manteiga é um estado de espírito." << std::endl;
-  std::cout << std::endl;
-  std::cout << "*****************************************************************************" << std::endl;
-  std::cout << std::endl;
+  print_hline();
 
   std::this_thread::sleep_for(std::chrono::milliseconds(5000));
 
   std::cout << "\033[32mIniciando simulação\033[0m" << std::endl;
+}
+
+/* Print goodbye message with stats
+ */
+inline void print_goodbye(stats s) {
+  print_blank_line();
+  std::cout << "Estatísticas finais: " << std::endl;
+  print_hline();
+
+  std::cout << "Tempo de operação da cozinha (segundos): " << s.time_open_millis / 1000 << std::endl;
+  print_blank_line();
+  std::cout << "Total de pedidos realizados por clientes: " << s.total_orders_accepted << std::endl;
+  print_blank_line();
+  std::cout << "Total de pedidos negados (tentativas após fechamento): " << s.total_orders_denied << std::endl;
+  print_blank_line();
+  std::cout << "Total de pedidos preparados por cada cozinheiro:" << std::endl;
+
+  for (auto e : s.orders_completed_by_cook) {
+    print_blank_line();
+    std::cout << "***" << std::endl;
+    print_blank_line();
+    std::cout << "Cozinheiro " << e.second.first << " (id: " << e.first << "): " << std::endl;
+    std::cout << "\t" << "Total de pedidos realizados: " << e.second.second.size() << std::endl;
+    for (auto o : e.second.second) {
+      print_blank_line();
+      std::cout << "\t\tID Pedido: " << o.id << std::endl;
+      std::cout << "\t\tTempo de preparo (segundos): " << o.preparation_time_millis / 1000 << std::endl;
+    }
+  }
+
+  print_blank_line();
+  std::cout << "\033[32mSimulação finalizada\033[0m" << std::endl;
+  print_hline();
 }
 
 /* Thread-safe implementation of stdout print (with timestamp)
@@ -138,3 +179,5 @@ inline void thread_safe_print(const std::string &s, std::mutex &m) {
 /* Returns random delay time between 0 and `max_seconds` seconds (DEFAULT=9).
  */
 inline int get_random_delay_millis(int max_seconds = 9) { return (system_time() % max_seconds) * 1000; }
+
+#endif

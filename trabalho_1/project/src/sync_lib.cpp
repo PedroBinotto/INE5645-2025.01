@@ -1,4 +1,4 @@
-#include "artifacts.hpp"
+#include "sync_lib.hpp"
 
 barrier::barrier(size_t count) : threshold(count), count(count) {}
 
