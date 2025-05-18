@@ -18,8 +18,19 @@ private:
   size_t generation = 0;
 
 public:
-  explicit barrier(size_t count);
-  void wait();
+  explicit barrier(size_t count) : threshold(count), count(count) {}
+  void wait() {
+    std::unique_lock<std::mutex> lock(mutex);
+    size_t current_gen = generation;
+
+    if (--count == 0) {
+      generation++;
+      count = threshold;
+      cv.notify_all();
+    } else {
+      cv.wait(lock, [this, current_gen] { return current_gen != generation; });
+    }
+  }
 };
 
 struct counting_semaphore {
@@ -29,9 +40,19 @@ private:
   int count;
 
 public:
-  counting_semaphore(int initial_count);
-  void acquire();
-  void release();
+  counting_semaphore(int initial_count) : count(initial_count) {}
+  void acquire() {
+    std::unique_lock<std::mutex> lock(mutex);
+    cv.wait(lock, [this] { return count > 0; });
+    count--;
+  }
+  void release() {
+    {
+      std::lock_guard<std::mutex> lock(mutex);
+      count++;
+    }
+    cv.notify_one();
+  }
 };
 
 template <typename T> struct synchronizing_queue {
