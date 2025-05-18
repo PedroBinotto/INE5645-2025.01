@@ -14,8 +14,6 @@
 #include <utility>
 #include <vector>
 
-#define RESTAURANT_CLOSING_TIME_MILLIS 15000 // 15 seconds
-
 std::mutex cout_lock;
 std::atomic<bool> is_open{true};
 std::atomic<int> next_order_id{1};
@@ -147,7 +145,7 @@ void client(int id, int time_offset_millis) {
   thread_safe_print(format_message("foi embora"), cout_lock);
 }
 
-void run_simulation(int n_cooks, int n_clients, int n_ovens, int n_stoves) {
+void run_simulation(int n_cooks, int n_clients, int n_ovens, int n_stoves, int s_tempo_fechamento) {
   barrier kitchen_barrier(n_cooks + 1);
   counting_semaphore ovens{n_ovens};
   counting_semaphore stoves{n_stoves};
@@ -162,7 +160,7 @@ void run_simulation(int n_cooks, int n_clients, int n_ovens, int n_stoves) {
   kitchen_barrier.wait();
   thread_safe_print("Cozinha está funcionando!", cout_lock);
 
-  std::thread closing_timer(timer, RESTAURANT_CLOSING_TIME_MILLIS);
+  std::thread closing_timer(timer, s_tempo_fechamento * 1000);
 
   // Time relief so that text remains readable before orders start piling up
   std::this_thread::sleep_for(std::chrono::milliseconds(3000));
@@ -189,8 +187,8 @@ int main(int argc, const char **argv) {
 
   std::apply(run_simulation, params);
 
-  print_goodbye(stats(RESTAURANT_CLOSING_TIME_MILLIS, total_orders_accepted, total_orders_denied,
-                      std::ref(orders_completed_by_cook)));
+  print_goodbye(
+      stats(std::get<4>(params), total_orders_accepted, total_orders_denied, std::ref(orders_completed_by_cook)));
 
   return 0;
 }

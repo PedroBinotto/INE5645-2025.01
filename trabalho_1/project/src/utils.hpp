@@ -18,6 +18,7 @@
 // std::cout << "\033[1;35mBold Magenta\033[0m\n";   Bold + Magenta
 // std::cout << "\033[0mNormal Text\n";              Normal
 
+#define DEFAULT_TEMPO_FECHAMENTO_RESTAURANTE_SEGUNDOS 15
 #define DEFAULT_NUM_COZINHEIROS 5
 #define DEFAULT_NUM_CLIENTES 30
 #define DEFAULT_NUM_FOGOES 2
@@ -43,39 +44,59 @@ inline int system_time() { return std::chrono::system_clock::now().time_since_ep
 inline program_args capture_args(int argc, const char **argv) {
   switch (argc) {
   case 1:
-    std::cout << "\033[33m[NUM_COZINHEIROS, NUM_CLIENTES] não informados; usando parâmetros padrão: \033[0m"
+    std::cout << "\033[33m[NUM_COZINHEIROS, NUM_CLIENTES, NUM_FOGOES, NUM_FORNOS, "
+                 "TEMPO_FECHAMENTO_RESTAURANTE_SEGUNDOS] não informados; "
+                 "usando parâmetros padrão: \033[0m"
               << std::endl;
-    print_vec<int>({DEFAULT_NUM_COZINHEIROS, DEFAULT_NUM_CLIENTES});
+    print_vec<int>({DEFAULT_NUM_COZINHEIROS, DEFAULT_NUM_CLIENTES, DEFAULT_NUM_FOGOES, DEFAULT_NUM_FORNOS,
+                    DEFAULT_TEMPO_FECHAMENTO_RESTAURANTE_SEGUNDOS});
 
-    std::cout << "\033[33m[NUM_FOGOES, NUM_FORNOS] não informados; usando parâmetros padrão: \033[0m" << std::endl;
-    print_vec<int>({DEFAULT_NUM_FOGOES, DEFAULT_NUM_FORNOS});
-
-    return program_args(DEFAULT_NUM_COZINHEIROS, DEFAULT_NUM_CLIENTES, DEFAULT_NUM_FOGOES, DEFAULT_NUM_FORNOS);
+    return program_args(DEFAULT_NUM_COZINHEIROS, DEFAULT_NUM_CLIENTES, DEFAULT_NUM_FOGOES, DEFAULT_NUM_FORNOS,
+                        DEFAULT_TEMPO_FECHAMENTO_RESTAURANTE_SEGUNDOS);
     break;
   case 3:
     std::cout << "\033[33mUsando parâmetros [NUM_COZINHEIROS, NUM_CLIENTES] informados: \033[0m" << std::endl;
     print_vec(std::vector<std::string>(argv + 1, argv + argc));
 
-    std::cout << "\033[33m[NUM_FOGOES, NUM_FORNOS] não informados; usando parâmetros padrão: \033[0m" << std::endl;
-    print_vec<int>({DEFAULT_NUM_FOGOES, DEFAULT_NUM_FORNOS});
+    std::cout << "\033[33m[NUM_FOGOES, NUM_FORNOS, TEMPO_FECHAMENTO_RESTAURANTE_SEGUNDOS] não informados; usando "
+                 "parâmetros padrão: \033[0m"
+              << std::endl;
+    print_vec<int>({DEFAULT_NUM_FOGOES, DEFAULT_NUM_FORNOS, DEFAULT_TEMPO_FECHAMENTO_RESTAURANTE_SEGUNDOS});
 
-    return program_args(std::stoi(argv[1]), std::stoi(argv[2]), DEFAULT_NUM_FOGOES, DEFAULT_NUM_FORNOS);
+    return program_args(std::stoi(argv[1]), std::stoi(argv[2]), DEFAULT_NUM_FOGOES, DEFAULT_NUM_FORNOS,
+                        DEFAULT_TEMPO_FECHAMENTO_RESTAURANTE_SEGUNDOS);
     break;
   case 5:
-    std::cout << "\033[33mUsando parâmetros [NUM_COZINHEIROS, NUM_CLIENTES] informados: \033[0m" << std::endl;
+    std::cout << "\033[33mUsando parâmetros [NUM_COZINHEIROS, NUM_CLIENTES, NUM_FOGOES, NUM_FORNOS] informados: \033[0m"
+              << std::endl;
     print_vec(std::vector<std::string>(argv + 1, argv + argc));
 
-    std::cout << "\033[33mUsando parâmetros [NUM_FOGOES, NUM_FORNOS] informados: \033[0m" << std::endl;
+    std::cout << "\033[33m[TEMPO_FECHAMENTO_RESTAURANTE_SEGUNDOS] não informado; usando parâmetro padrão: \033[0m"
+              << std::endl;
+    print_vec<int>({DEFAULT_TEMPO_FECHAMENTO_RESTAURANTE_SEGUNDOS});
+
+    return program_args(std::stoi(argv[1]), std::stoi(argv[2]), std::stoi(argv[3]), std::stoi(argv[4]),
+                        DEFAULT_TEMPO_FECHAMENTO_RESTAURANTE_SEGUNDOS);
+    break;
+  case 6:
+    std::cout << "\033[33mUsando parâmetros [NUM_COZINHEIROS, NUM_CLIENTES, NUM_FOGOES, NUM_FORNOS, "
+                 "TEMPO_FECHAMENTO_RESTAURANTE_SEGUNDOS] informados: \033[0m"
+              << std::endl;
     print_vec(std::vector<std::string>(argv + 1, argv + argc));
 
-    return program_args(std::stoi(argv[1]), std::stoi(argv[2]), std::stoi(argv[3]), std::stoi(argv[4]));
+    return program_args(std::stoi(argv[1]), std::stoi(argv[2]), std::stoi(argv[3]), std::stoi(argv[4]),
+                        std::stoi(argv[5]));
     break;
   default:
     std::cerr << "\033[31mEntrada inválida: \033[0m" << std::endl;
     print_vec(std::vector<std::string>(argv + 1, argv + argc));
     std::cout << "\033[31mDeve ser " << argv[0] << " <NUM_COZINHEIROS, NUM_CLIENTES>\033[0m ou" << std::endl;
-    std::cout << "\033[31mDeve ser " << argv[0] << " <NUM_COZINHEIROS, NUM_CLIENTES, NUM_FOGOES, NUM_FORNOS>\033[0m"
+    std::cout << "\033[31mDeve ser " << argv[0] << " <NUM_COZINHEIROS, NUM_CLIENTES, NUM_FOGOES, NUM_FORNOS>\033[0m ou"
               << std::endl;
+    std::cout
+        << "\033[31mDeve ser " << argv[0]
+        << " <NUM_COZINHEIROS, NUM_CLIENTES, NUM_FOGOES, NUM_FORNOS, TEMPO_FECHAMENTO_RESTAURANTE_SEGUNDOS>\033[0m ou"
+        << std::endl;
 
     exit(1);
   }
@@ -142,7 +163,7 @@ inline void print_goodbye(stats s) {
   std::cout << "Estatísticas finais: " << std::endl;
   print_hline();
 
-  std::cout << "Tempo de operação da cozinha (segundos): " << s.time_open_millis / 1000 << std::endl;
+  std::cout << "Tempo de operação da cozinha (segundos): " << s.time_open_millis << std::endl;
   print_blank_line();
   std::cout << "Total de pedidos realizados por clientes: " << s.total_orders_accepted << std::endl;
   print_blank_line();

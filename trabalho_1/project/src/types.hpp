@@ -6,7 +6,7 @@
 #include <unordered_map>
 #include <vector>
 
-typedef std::tuple<int, int, int, int> program_args;
+typedef std::tuple<int, int, int, int, int> program_args;
 
 struct order {
   int id;
