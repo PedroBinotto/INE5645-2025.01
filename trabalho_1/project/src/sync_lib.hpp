@@ -64,7 +64,6 @@ private:
 public:
   void push(const T &element) {
     {
-
       std::lock_guard<std::mutex> lock(mutex);
       elements.push(element);
     }
