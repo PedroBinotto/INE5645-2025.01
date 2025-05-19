@@ -10,7 +10,7 @@
 
 ---
 
-Link para o vídeo de apresentação do trabalho: [Google Docs](https://drive.google.com/drive/folders/116GsTjZRknR5FTEKkQzuvRdQMXof-LzJ?usp=drive_link)
+Link para o vídeo de apresentação do trabalho: [Google Drive](https://drive.google.com/drive/folders/116GsTjZRknR5FTEKkQzuvRdQMXof-LzJ?usp=drive_link)
 
 ## Compilação e execução
 
