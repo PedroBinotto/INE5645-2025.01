@@ -63,7 +63,7 @@ Hello!
 
 - `run` (com parâmetros customizados);
 
-O comando de `run` permite também ao usuário custamizar a paramtetrização do programa; as seguintes variáveis podem ser informadas ao executar o binário:
+O comando de `run` permite também ao usuário customizar a parametrização do programa; as seguintes variáveis podem ser informadas ao executar o binário:
 
 - `TEMPO_FECHAMENTO_RESTAURANTE_SEGUNDOS`; _default: **15**;_
 - `NUM_COZINHEIROS`; _default: **5**;_
@@ -71,7 +71,7 @@ O comando de `run` permite também ao usuário custamizar a paramtetrização do
 - `NUM_FOGOES`; _default: **2**;_
 - `NUM_FORNOS`; _default: **2**;_
 
-Através do Make, podem ser informados segundo à seguinte sitaxe:
+Através do Make, podem ser informados segundo à seguinte sintaxe:
 
 ```bash
 pedro@machine ➜ project (main) make run ARGS="<arg1, arg2 ...>"

@@ -91,7 +91,7 @@ inline program_args capture_args(int argc, const char **argv) {
         << " <NUM_COZINHEIROS, NUM_CLIENTES, NUM_FOGOES, NUM_FORNOS, TEMPO_FECHAMENTO_RESTAURANTE_SEGUNDOS>\033[0m"
         << std::endl;
 
-    exit(1);
+    std::exit(EXIT_FAILURE);
   }
 }
 

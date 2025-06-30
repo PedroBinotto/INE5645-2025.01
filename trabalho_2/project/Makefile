@@ -1,3 +1,12 @@
+# **********************************************************************************************************************
+# "USER-LEVEL" CONFIGURATION SECTION BEGINS HERE! THESE VARIABLES ARE SAFE TO TWEAK FOR DIFFERENT BEHAVIOUR
+
+# Determines how many intances of the process will be spawned by MPICC
+N_PROCS := 5
+
+# "USER-LEVEL" CONFIGURATION SECTION ENDS HERE! DO NOT EDIT CODE BEYOUND THIS LINE UNLESS YOU KNOW WHAT YOU ARE DOING
+# **********************************************************************************************************************
+
 MPICC=mpic++
 MPIR=mpirun
 CXXFLAGS := -std=c++17 -Wall -Wextra -g -pedantic
@@ -13,8 +22,6 @@ TARGET := $(BINDIR)/$(APPNAME)
 
 SRCS := $(wildcard $(SRCDIR)/*.cpp)
 OBJS := $(patsubst $(SRCDIR)/%.cpp,$(OBJDIR)/%.o,$(SRCS))
-
-N_PROCS := 5
 
 all: help
 

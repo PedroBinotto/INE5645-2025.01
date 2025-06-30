@@ -60,6 +60,49 @@ Hello world from processor machine, rank 1 out of 5 processors
 
 ---
 
+- `run` (com parâmetros customizados);
+
+O comando de `run` permite também ao usuário customizar a parametrização do programa; as seguintes variáveis podem ser informadas ao executar o binário:
+
+- `BLOCK_SIZE`; _default: **5**;_
+- `NUM_BLOCKS`; _default: **20**;_
+
+Através do Make, podem ser informados segundo à seguinte sintaxe:
+
+```bash
+pedro@machine ➜ project (main) make run ARGS="<arg1, arg2 ...>"
+./bin/distributed
+Hello!
+```
+
+Em tal caso os argumentos devem ser informados na ordem correta:
+
+```
+1           2
+BLOCK_SIZE, NUM_BLOCKS
+```
+
+Podem ser informados, de uma só vez:
+
+```
+<BLOCK_SIZE> ou
+<BLOCK_SIZE, NUM_BLOCKS>
+```
+
+ex.:
+
+```bash
+pedro@machine ➜ project (main) make run ARGS="10"
+mpirun -n 5 bin/distributed 10
+...
+
+pedro@machine ➜ project (main) make run ARGS="10 10"
+mpirun -n 5 bin/distributed 10 10
+...
+```
+
+---
+
 - `clean`;
 
 ```bash
