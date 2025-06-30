@@ -17,20 +17,22 @@ Repositório para as atividades da disciplina INE5645 - Programação Paralela e
 <summary> Mostrar visualização em árvore </summary>
 
 ```
-.
-└── trabalho_1
+├── README.md
+├── trabalho_1
+│   ├── project
+│   │   ├── INE5645_trabalho1.pdf
+│   │   ├── Makefile
+│   │   ├── README.md
+│   │   └── src
+│   └── slides
+│       └── slides.pdf
+└── trabalho_2
     ├── project
-    │   ├── .clang-format
-    │   ├── .gitignore
-    │   ├── INE5645_trabalho1.pdf
+    │   ├── INE5645_trabalho2.pdf
     │   ├── Makefile
     │   ├── README.md
     │   └── src
     └── slides
-        └── latex
-            ├── .gitignore
-            ├── presentation.tex
-            └── references.bib
 ```
 </details>
 

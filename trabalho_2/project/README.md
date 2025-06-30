@@ -74,6 +74,6 @@ rm -rf obj bin log
 O processo de configuração do LSP ([clangd](https://clangd.llvm.org/)) para adequadamente incluir os artefatos MPI para consulta no editor de texto, foi necessário gerar um arquivo `compile_commands.json` através da ferramenta [Bear](https://github.com/rizsotto/Bear):
 
 ```bash
-# pwd: INE5645-2025.01/trabalhos/trabalho_2/project
+# pwd: INE5645-2025.01/trabalho_2/project
 bear -- make run
 ```
