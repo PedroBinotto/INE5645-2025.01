@@ -6,7 +6,7 @@
 #include <vector>
 
 #define DEFAULT_BLOCK_SIZE 5
-#define DEFAULT_NUM_BLOCKS 5
+#define DEFAULT_NUM_BLOCKS 20
 
 /* Pretty-prints vector representation to `stdout`.
  */
