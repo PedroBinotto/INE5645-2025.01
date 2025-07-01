@@ -2,13 +2,18 @@
 #define __UTILS_H__
 
 #include "types.hpp"
+#include <bitset>
+#include <format>
 #include <iostream>
 #include <vector>
 
-#define DEFAULT_BLOCK_SIZE 5
-#define DEFAULT_NUM_BLOCKS 20
+#define DEFAULT_BLOCK_SIZE 8
+#define DEFAULT_NUM_BLOCKS 4
+#define MAX_BLOCK_SIZE 32
+#define MAX_NUM_BLOCKS 32
+#define MASTER_INSTANCE_ID 0
 
-/* Pretty-prints vector representation to `stdout`.
+/* Pretty-prints `std::block` representation to `stdout`.
  */
 template <typename T>
 inline void print_vec(const std::vector<T> &list,
@@ -16,6 +21,14 @@ inline void print_vec(const std::vector<T> &list,
   std::cout << "[";
   for (size_t i = 0; i < list.size(); ++i)
     std::cout << list[i] << ((i == list.size() - 1) ? "]\n" : sep);
+}
+
+/* Pretty-prints `types::block` representation to `stdout`.
+ */
+inline void print_block(const block &b, std::size_t size) {
+  for (std::size_t i = 0; i < size; ++i)
+    std::cout << std::bitset<8>(b[i]) << " ";
+  std::cout << std::endl;
 }
 
 /* Resolves params (BLOCK_SIZE, NUM_BLOCKS) from `stdin` or returns default
@@ -91,20 +104,46 @@ inline void validate_args(program_args &args, int world_size,
   int block_size = std::get<0>(args);
   int num_blocks = std::get<1>(args);
 
-  if (num_blocks <= 0) {
+  if (num_blocks <= 0)
     fail("Número de blocos de memória alocados deve ser maior do que 0");
-  }
 
-  if (block_size <= 0) {
+  if (block_size <= 0)
     fail("Tamanho de bloco de memória deve ser maior do que 0");
-  }
 
-  if (num_blocks > world_size) {
+  if (num_blocks < world_size)
     fail("Número de blocos de memória alocados deve ser igual ou maior ao "
          "número de processos instanciados");
 
-    std::exit(EXIT_FAILURE);
+  if (num_blocks > MAX_NUM_BLOCKS)
+    fail(std::format(
+        "Limite máximo de número de blocos de memória alocados é {0}",
+        MAX_NUM_BLOCKS));
+
+  if (block_size > MAX_BLOCK_SIZE)
+    fail(std::format(
+        "Limite máximo do tamanho dos blocos de memória alocados é {0}",
+        MAX_BLOCK_SIZE));
+}
+
+/* Determines if process instance should produce verbose output.
+ *
+ * To maintain clarity and readability in the output, only process rank 0 should
+ * display the major lifecycle admonitions.
+ */
+inline bool is_verbose(int world_rank) {
+  return world_rank == MASTER_INSTANCE_ID;
+}
+
+/* Resolves the `memory_map` representing the memory block distribution between
+ * the program instances
+ */
+inline memory_map resolve_maintainers(int world_size, int num_blocks) {
+  std::vector<std::vector<int>> assignment(world_size);
+  for (int i = 0; i < num_blocks; ++i) {
+    assignment[i % world_size].push_back(i);
   }
+
+  return assignment;
 }
 
 #endif

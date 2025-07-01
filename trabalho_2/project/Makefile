@@ -2,14 +2,14 @@
 # "USER-LEVEL" CONFIGURATION SECTION BEGINS HERE! THESE VARIABLES ARE SAFE TO TWEAK FOR DIFFERENT BEHAVIOUR
 
 # Determines how many intances of the process will be spawned by MPICC
-N_PROCS := 5
+N_PROCS := 4
 
 # "USER-LEVEL" CONFIGURATION SECTION ENDS HERE! DO NOT EDIT CODE BEYOUND THIS LINE UNLESS YOU KNOW WHAT YOU ARE DOING
 # **********************************************************************************************************************
 
 MPICC=mpic++
 MPIR=mpirun
-CXXFLAGS := -std=c++17 -Wall -Wextra -g -pedantic
+CXXFLAGS := -std=c++20 -Wall -Wextra -g -pedantic
 LIBFLAGS :=
 
 APPNAME := distributed

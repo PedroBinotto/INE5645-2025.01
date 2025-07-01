@@ -64,8 +64,8 @@ Hello world from processor machine, rank 1 out of 5 processors
 
 O comando de `run` permite também ao usuário customizar a parametrização do programa; as seguintes variáveis podem ser informadas ao executar o binário:
 
-- `BLOCK_SIZE`; _default: **5**;_
-- `NUM_BLOCKS`; _default: **20**;_
+- `BLOCK_SIZE`; _default: **8**;_
+- `NUM_BLOCKS`; _default: **4**;_
 
 Através do Make, podem ser informados segundo à seguinte sintaxe:
 
