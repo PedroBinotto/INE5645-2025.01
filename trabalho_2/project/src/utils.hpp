@@ -13,6 +13,8 @@
 #define MAX_NUM_BLOCKS 32
 #define MASTER_INSTANCE_ID 0
 
+#define MESSAGE_TAG_REQUEST 0
+
 /* Pretty-prints `std::block` representation to `stdout`.
  */
 template <typename T>

@@ -14,15 +14,15 @@ int main(int argc, const char **argv) {
   MPI_Get_processor_name(processor_name, &name_len);
 
   const bool verbose = is_verbose(world_rank);
-
   program_args params = capture_args(argc, argv, verbose);
+  int block_size = std::get<0>(params);
+  int num_blocks = std::get<1>(params);
 
   validate_args(params, world_size, verbose);
 
-  memory_map mem_map = resolve_maintainers(world_size, std::get<1>(params));
-
-  LocalRepository repo =
-      LocalRepository(mem_map, std::get<0>(params), world_rank);
+  memory_map mem_map = resolve_maintainers(world_size, num_blocks);
+  UnifiedRepositoryFacade repo =
+      UnifiedRepositoryFacade(mem_map, block_size, world_rank);
 
   MPI_Barrier(MPI_COMM_WORLD);
 
