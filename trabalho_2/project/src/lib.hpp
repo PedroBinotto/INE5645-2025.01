@@ -6,6 +6,7 @@
 #include "types.hpp"
 #include "utils.hpp"
 #include <algorithm>
+#include <iostream>
 #include <map>
 #include <memory>
 #include <utility>
@@ -38,6 +39,13 @@ inline LocalRepository::LocalRepository(memory_map mem_map, int block_size,
   for (int i : mem_map.at(world_rank)) {
     block b = std::make_unique<std::uint8_t[]>(block_size);
     std::fill_n(b.get(), block_size, 0);
+
+    if (is_verbose(world_rank)) { // DEBUG
+      std::cout << "(@proc " << world_rank << ") LocalRepository[" << i
+                << "]: ";
+      print_block(b, block_size);
+    }
+
     blocks.emplace(i, std::move(b));
   }
 }
@@ -88,6 +96,17 @@ inline RemoteRepository::RemoteRepository(memory_map mem_map, int block_size,
 
     for (int j : mem_map.at(i)) {
       std::unique_ptr<uint8_t[]> block;
+
+      if (is_verbose(world_rank)) { // DEBUG
+        std::cout << "(@proc " << world_rank << ") RemoteRepository[" << j
+                  << "]: ";
+        if (block) {
+          print_block(block, block_size);
+        } else {
+          std::cout << "Empty block!" << std::endl;
+        }
+      }
+
       blocks.emplace(j, std::make_pair(i, std::move(block)));
     }
   }
