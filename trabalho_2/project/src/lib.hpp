@@ -7,6 +7,7 @@
 #include "utils.hpp"
 #include <algorithm>
 #include <map>
+#include <memory>
 #include <utility>
 
 class IRepository {
@@ -58,7 +59,7 @@ inline block LocalRepository::read(int key) {
 
 /* Write `value` to memory block identified by `key` */
 inline void LocalRepository::write(int key, block value) {
-  throw std::runtime_error("not yet implemented");
+  blocks.emplace(key, value);
 }
 
 /* Wrapper class for the remote memory-blocks - that is - the memory
@@ -139,12 +140,14 @@ public:
 
 private:
   std::map<int, std::shared_ptr<IRepository>> access_map;
+  int block_size;
 };
 
 inline UnifiedRepositoryFacade::UnifiedRepositoryFacade(memory_map mem_map,
                                                         int block_size,
                                                         int world_rank)
-    : access_map(std::map<int, std::shared_ptr<IRepository>>()) {
+    : access_map(std::map<int, std::shared_ptr<IRepository>>()),
+      block_size(block_size) {
   std::shared_ptr<IRepository> local =
       std::make_shared<LocalRepository>(mem_map, block_size, world_rank);
   std::shared_ptr<IRepository> remote =
@@ -161,13 +164,13 @@ inline UnifiedRepositoryFacade::~UnifiedRepositoryFacade() = default;
 
 /* Write `value` to memory block identified by `key` */
 inline void UnifiedRepositoryFacade::write(int key, block value) {
-  throw std::runtime_error("not yet implemented");
+  access_map.at(key)->write(key, std::move(value));
 }
 
 /* Read contents from block indexed by `key`
  */
 inline block UnifiedRepositoryFacade::read(int key) {
-  throw std::runtime_error("not yet implemented");
+  return access_map.at(key)->read(key);
 }
 
 #endif
