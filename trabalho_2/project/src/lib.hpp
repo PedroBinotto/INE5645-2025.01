@@ -6,6 +6,7 @@
 #include "types.hpp"
 #include "utils.hpp"
 #include <algorithm>
+#include <format>
 #include <iostream>
 #include <map>
 #include <memory>
@@ -41,8 +42,8 @@ inline LocalRepository::LocalRepository(memory_map mem_map, int block_size,
     std::fill_n(b.get(), block_size, 0);
 
     if (is_verbose(world_rank)) { // DEBUG
-      std::cout << "(@proc " << world_rank << ") LocalRepository[" << i
-                << "]: ";
+      std::cout << identify_log_string(std::format("LocalRepository[{0}]: ", i),
+                                       world_rank);
       print_block(b, block_size);
     }
 
@@ -84,12 +85,13 @@ private:
   memory_map mem_map;
   std::map<int, std::pair<int, block>> blocks;
   int block_size;
+  int world_rank;
 };
 
 inline RemoteRepository::RemoteRepository(memory_map mem_map, int block_size,
                                           int world_rank)
     : mem_map(mem_map), blocks(std::map<int, std::pair<int, block>>()),
-      block_size(block_size) {
+      block_size(block_size), world_rank(world_rank) {
   for (int i = 0; i < mem_map.size(); i++) {
     if (i == world_rank)
       continue;
@@ -98,8 +100,8 @@ inline RemoteRepository::RemoteRepository(memory_map mem_map, int block_size,
       std::unique_ptr<uint8_t[]> block;
 
       if (is_verbose(world_rank)) { // DEBUG
-        std::cout << "(@proc " << world_rank << ") RemoteRepository[" << j
-                  << "]: ";
+        std::cout << identify_log_string(
+            std::format("RemoteRepository[{0}]: ", j), world_rank);
         if (block) {
           print_block(block, block_size);
         } else {
@@ -117,6 +119,12 @@ inline RemoteRepository::~RemoteRepository() = default;
 /* Read contents from block indexed by `key`
  */
 inline block RemoteRepository::read(int key) {
+  auto handle_error = [&](const int &result, const std::string &type) {
+    if (result != MPI_SUCCESS)
+      throw std::runtime_error(identify_log_string(
+          std::format("{0} failed with code: {1}", type, result), world_rank));
+  };
+
   auto it = blocks.find(key);
   if (it == blocks.end())
     throw std::runtime_error("bad index");
@@ -126,17 +134,18 @@ inline block RemoteRepository::read(int key) {
   block &blk = block_pair.second;
 
   if (!blk) {
-    uint8_t *buffer = (uint8_t *)malloc(block_size);
+    block buffer = std::make_unique<uint8_t[]>(block_size);
 
-    MPI_Send(&key, 1, MPI::INT, target, MESSAGE_TAG_REQUEST, MPI_COMM_WORLD);
-
-    MPI_Recv(buffer, block_size, MPI_UNSIGNED_CHAR, target, 0, MPI_COMM_WORLD,
-             MPI_STATUS_IGNORE);
+    handle_error(MPI_Send(&key, 1, MPI::INT, target, MESSAGE_TAG_REQUEST,
+                          MPI_COMM_WORLD),
+                 "MPI_Send");
+    handle_error(MPI_Recv(buffer.get(), block_size, MPI_UNSIGNED_CHAR, target,
+                          MESSAGE_TAG_RESPONSE, MPI_COMM_WORLD,
+                          MPI_STATUS_IGNORE),
+                 "MPI_Recv");
 
     blk = std::make_unique<uint8_t[]>(block_size);
-    std::copy_n(buffer, block_size, blk.get());
-
-    free(buffer);
+    std::copy_n(buffer.get(), block_size, blk.get());
   }
 
   block copy = std::make_unique<std::uint8_t[]>(block_size);
@@ -159,14 +168,12 @@ public:
 
 private:
   std::map<int, std::shared_ptr<IRepository>> access_map;
-  int block_size;
 };
 
 inline UnifiedRepositoryFacade::UnifiedRepositoryFacade(memory_map mem_map,
                                                         int block_size,
                                                         int world_rank)
-    : access_map(std::map<int, std::shared_ptr<IRepository>>()),
-      block_size(block_size) {
+    : access_map(std::map<int, std::shared_ptr<IRepository>>()) {
   std::shared_ptr<IRepository> local =
       std::make_shared<LocalRepository>(mem_map, block_size, world_rank);
   std::shared_ptr<IRepository> remote =

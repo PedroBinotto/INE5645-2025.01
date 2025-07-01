@@ -13,7 +13,8 @@
 #define MAX_NUM_BLOCKS 32
 #define MASTER_INSTANCE_ID 0
 
-#define MESSAGE_TAG_REQUEST 0
+#define MESSAGE_TAG_REQUEST 100
+#define MESSAGE_TAG_RESPONSE 101
 
 /* Pretty-prints `std::block` representation to `stdout`.
  */
@@ -146,6 +147,12 @@ inline memory_map resolve_maintainers(int world_size, int num_blocks) {
   }
 
   return assignment;
+}
+
+/* Adds a process-rank identifier tag to the beggining of the message
+ */
+inline std::string identify_log_string(std::string input, int world_rank) {
+  return std::format("(@proc {0}) ", world_rank) + input;
 }
 
 #endif
