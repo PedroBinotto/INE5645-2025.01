@@ -59,7 +59,7 @@ inline block LocalRepository::read(int key) {
 
 /* Write `value` to memory block identified by `key` */
 inline void LocalRepository::write(int key, block value) {
-  blocks.emplace(key, value);
+  blocks.emplace(key, std::move(value));
 }
 
 /* Wrapper class for the remote memory-blocks - that is - the memory
