@@ -10,6 +10,8 @@
 #include <iostream>
 #include <map>
 #include <memory>
+#include <mutex>
+#include <shared_mutex>
 #include <utility>
 
 class IRepository {
@@ -31,6 +33,7 @@ public:
 private:
   memory_map mem_map;
   std::map<int, block> blocks;
+  std::shared_mutex mtx;
   int block_size;
 };
 
@@ -56,6 +59,7 @@ inline LocalRepository::~LocalRepository() = default;
 /* Read contents from block indexed by `key`
  */
 inline block LocalRepository::read(int key) {
+  std::shared_lock lock(mtx);
   auto it = blocks.find(key);
   if (it == blocks.end())
     throw std::runtime_error("bad index");
@@ -68,6 +72,7 @@ inline block LocalRepository::read(int key) {
 
 /* Write `value` to memory block identified by `key` */
 inline void LocalRepository::write(int key, block value) {
+  std::unique_lock lock(mtx);
   blocks.emplace(key, std::move(value));
 }
 

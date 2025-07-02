@@ -22,8 +22,8 @@ using block = std::unique_ptr<std::uint8_t[]>;
  * of the program, wherein:
  *
  * - indexes are integer values representing the `world_rank` of each instance;
- * - values (`list<int>`) are lists containing the indexes of which memory
- * blocks are maintained by that instance
+ * - values (`std::vector<int>`) are lists containing the indexes of which
+ * memory blocks are maintained by that instance
  */
 typedef std::vector<std::vector<int>> memory_map;
 
