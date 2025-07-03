@@ -32,7 +32,7 @@ inline std::string print_block(const block &b, std::size_t size) {
   std::string msg;
   for (std::size_t i = 0; i < size; ++i)
     msg += std::bitset<8>(b[i]).to_string() + " ";
-  return msg + "\n";
+  return msg;
 }
 
 /* Resolves params (BLOCK_SIZE, NUM_BLOCKS) from `stdin` or returns default
