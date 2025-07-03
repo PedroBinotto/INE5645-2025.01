@@ -6,6 +6,7 @@
 #include <sys/stat.h>
 
 #define LOG_DIR "log"
+#define LOG_EXT "log"
 
 class ThreadSafeLogger {
 protected:

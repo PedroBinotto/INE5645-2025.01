@@ -6,12 +6,28 @@
 /* Creates a directory from (relative) `path`)
  */
 void create_directory(const std::string &path) {
-  struct stat info;
-  if (stat(path.c_str(), &info) != 0) {
-    if (mkdir(path.c_str(), 0777) == 0)
-      return;
-  } else if (info.st_mode & S_IFDIR) {
+  if (path.empty()) {
     return;
+  }
+
+  struct stat info;
+  if (stat(path.c_str(), &info) == 0) {
+    if (info.st_mode & S_IFDIR) {
+      return;
+    } else {
+      throw std::runtime_error("Path exists but is not a directory: " + path);
+    }
+  }
+
+  size_t pos = path.find_last_of("/\\");
+  if (pos != std::string::npos) {
+    create_directory(path.substr(0, pos));
+  }
+
+  if (mkdir(path.c_str(), 0777) != 0) {
+    if (stat(path.c_str(), &info) != 0 || !(info.st_mode & S_IFDIR)) {
+      throw std::runtime_error("failed to create directory");
+    }
   }
 }
 
@@ -40,10 +56,11 @@ ThreadSafeLogger::ThreadSafeLogger() {
       std::to_string(registry->get(GlobalRegistryIndex::Timestamp));
   std::string rank =
       std::to_string(registry->get(GlobalRegistryIndex::WorldRank));
+  std::string dir = std::format("{0}/{1}", LOG_DIR, epoch);
 
-  create_directory(LOG_DIR);
-  std::string file =
-      std::format("{0}/{1}_proc-{2}_output.{3}", LOG_DIR, epoch, rank, "log");
+  create_directory(dir);
+
+  std::string file = std::format("{0}/proc-{1}_output.{2}", dir, rank, LOG_EXT);
   logfile = std::ofstream(file);
 }
 

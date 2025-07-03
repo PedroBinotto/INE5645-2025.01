@@ -19,7 +19,7 @@ OBJDIR := obj
 BINDIR := bin
 LOGDIR := log
 TARGET := $(BINDIR)/$(APPNAME)
-# DEBUG_OPTIONS := xterm -hold -e gdb catch throw -ex  run --args
+DEBUG_OPTIONS := xterm -hold -e gdb catch throw -ex  run --args
 
 SRCS := $(wildcard $(SRCDIR)/*.cpp)
 OBJS := $(patsubst $(SRCDIR)/%.cpp,$(OBJDIR)/%.o,$(SRCS))
