@@ -26,12 +26,13 @@ inline void print_vec(const std::vector<T> &list,
     std::cout << list[i] << ((i == list.size() - 1) ? "]\n" : sep);
 }
 
-/* Pretty-prints `types::block` representation to `stdout`.
+/* Formats `types::block` to pretty-print friendly representation
  */
-inline void print_block(const block &b, std::size_t size) {
+inline std::string print_block(const block &b, std::size_t size) {
+  std::string msg;
   for (std::size_t i = 0; i < size; ++i)
-    std::cout << std::bitset<8>(b[i]) << " ";
-  std::cout << std::endl;
+    msg += std::bitset<8>(b[i]).to_string() + " ";
+  return msg + "\n";
 }
 
 /* Resolves params (BLOCK_SIZE, NUM_BLOCKS) from `stdin` or returns default

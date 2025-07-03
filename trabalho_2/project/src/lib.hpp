@@ -1,13 +1,13 @@
 #ifndef __LIB_H__
 #define __LIB_H__
 
+#include "logger.hpp"
 #include "mpi.h"
 #include "ompi/mpi/cxx/mpicxx.h"
 #include "types.hpp"
 #include "utils.hpp"
 #include <algorithm>
 #include <format>
-#include <iostream>
 #include <map>
 #include <memory>
 #include <mutex>
@@ -45,9 +45,10 @@ inline LocalRepository::LocalRepository(memory_map mem_map, int block_size,
     std::fill_n(b.get(), block_size, 0);
 
     if (is_verbose(world_rank)) { // DEBUG
-      std::cout << identify_log_string(std::format("LocalRepository[{0}]: ", i),
-                                       world_rank);
-      print_block(b, block_size);
+      ThreadSafeLogger::get_instance()->log(
+          identify_log_string(std::format("LocalRepository[{0}]: {1}", i,
+                                          print_block(b, block_size)),
+                              world_rank));
     }
 
     blocks.emplace(i, std::move(b));
@@ -105,12 +106,13 @@ inline RemoteRepository::RemoteRepository(memory_map mem_map, int block_size,
       std::unique_ptr<uint8_t[]> block;
 
       if (is_verbose(world_rank)) { // DEBUG
-        std::cout << identify_log_string(
-            std::format("RemoteRepository[{0}]: ", j), world_rank);
+        ThreadSafeLogger::get_instance()->log(identify_log_string(
+            std::format("RemoteRepository[{0}]: ", j), world_rank));
         if (block) {
-          print_block(block, block_size);
+          ThreadSafeLogger::get_instance()->log(print_block(block, block_size));
         } else {
-          std::cout << "Empty block!" << std::endl;
+          ThreadSafeLogger::get_instance()->log(
+              identify_log_string("Empty block!", world_rank));
         }
       }
 

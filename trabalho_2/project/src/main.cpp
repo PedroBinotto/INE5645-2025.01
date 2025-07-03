@@ -20,9 +20,9 @@ void receive_request(std::set<int> &local_blocks, int world_rank,
       MPI_Recv(&requested_block, 1, MPI_INT, source, MESSAGE_TAG_REQUEST,
                MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
-  std::cout << identify_log_string(
+  ThreadSafeLogger::get_instance()->log(identify_log_string(
       std::format("received request for block {0}", requested_block),
-      world_rank);
+      world_rank));
 
   if (recv_result != MPI_SUCCESS)
     throw std::runtime_error("failed to receive request");
@@ -89,17 +89,17 @@ int main(int argc, const char **argv) {
 
   MPI_Barrier(MPI_COMM_WORLD);
 
-  std::cout << "Hello, World! from processor " << processor_name << ", rank "
-            << world_rank << " out of " << world_size << " processors"
-            << std::endl;
+  ThreadSafeLogger::get_instance()->log(std::format(
+      "Hello, World! from processor {0}, rank {1} out of {2} processors",
+      processor_name, world_rank, world_size));
 
   while (true) {
-
     int target_block = rng() % num_blocks;
-    std::cout << identify_log_string(
-                     std::format("Reading block {0}", target_block), world_rank)
-              << ": " << std::endl;
-    print_block(repo.read(target_block), block_size);
+    ThreadSafeLogger::get_instance()->log(identify_log_string(
+        std::format("Reading block {0}: {1}", target_block,
+                    print_block(repo.read(target_block), block_size)),
+        world_rank));
+    ;
 
     std::this_thread::sleep_for(
         std::chrono::milliseconds(5000 / (target_block + 1)));
