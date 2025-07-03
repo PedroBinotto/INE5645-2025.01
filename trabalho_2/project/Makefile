@@ -9,7 +9,7 @@ N_PROCS := 4
 
 MPICC=mpic++
 MPIR=mpirun
-CXXFLAGS := -std=c++20 -Wall -Wextra -g -pedantic
+CXXFLAGS := -std=c++20 -Wall -Wextra -g -O0 -pedantic
 LIBFLAGS :=
 
 APPNAME := distributed
@@ -19,9 +19,12 @@ OBJDIR := obj
 BINDIR := bin
 LOGDIR := log
 TARGET := $(BINDIR)/$(APPNAME)
+# DEBUG_OPTIONS := xterm -hold -e gdb catch throw -ex  run --args
 
 SRCS := $(wildcard $(SRCDIR)/*.cpp)
 OBJS := $(patsubst $(SRCDIR)/%.cpp,$(OBJDIR)/%.o,$(SRCS))
+
+TIMESTAMP := $(shell date +%s)
 
 all: help
 
@@ -54,4 +57,4 @@ clean:
 ## run $(ARGS): run with command line args via `make run ARGS="<arg1, arg2 ...>"`
 .PHONY: run
 run: build
-	$(MPIR) -n $(N_PROCS) $(TARGET) $(ARGS)
+	$(MPIR) -n $(N_PROCS) $(DEBUG_OPTIONS) $(TARGET) $(TIMESTAMP) $(ARGS)

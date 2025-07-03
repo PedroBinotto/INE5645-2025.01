@@ -1,10 +1,8 @@
 #ifndef __LOGGER_H__
 #define __LOGGER_H__
 
-#include "types.hpp"
-#include <chrono>
 #include <fstream>
-#include <iostream>
+#include <memory>
 #include <sys/stat.h>
 
 #define LOG_DIR "log"
@@ -20,8 +18,12 @@ public:
 
 private:
   static std::mutex mtx;
-  static std::unique_ptr<ThreadSafeLogger> instance;
+  static std::shared_ptr<ThreadSafeLogger> instance;
   std::ofstream logfile;
 };
+
+inline void thread_safe_log(const std::string &msg) {
+  ThreadSafeLogger::get_instance()->log(msg);
+}
 
 #endif

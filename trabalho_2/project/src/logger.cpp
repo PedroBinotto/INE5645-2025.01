@@ -1,4 +1,7 @@
 #include "logger.hpp"
+#include "store.hpp"
+#include <chrono>
+#include <iostream>
 
 /* Creates a directory from (relative) `path`)
  */
@@ -20,7 +23,7 @@ std::string currentUnixTime() {
                             .count());
 }
 
-std::unique_ptr<ThreadSafeLogger> ThreadSafeLogger::instance{nullptr};
+std::shared_ptr<ThreadSafeLogger> ThreadSafeLogger::instance{nullptr};
 
 std::mutex ThreadSafeLogger::mtx;
 
@@ -32,19 +35,24 @@ void ThreadSafeLogger::log(std::string msg) {
 }
 
 ThreadSafeLogger::ThreadSafeLogger() {
-  std::string epoch = currentUnixTime();
+  std::shared_ptr<GlobalRegistry> registry = GlobalRegistry::get_instance();
+  std::string epoch =
+      std::to_string(registry->get(GlobalRegistryIndex::Timestamp));
+  std::string rank =
+      std::to_string(registry->get(GlobalRegistryIndex::WorldRank));
+
   create_directory(LOG_DIR);
   std::string file =
-      std::format("{0}/{1}_{2}.{3}", LOG_DIR, epoch, "output", "log");
+      std::format("{0}/{1}_proc-{2}_output.{3}", LOG_DIR, epoch, rank, "log");
   logfile = std::ofstream(file);
 }
 
 std::shared_ptr<ThreadSafeLogger> ThreadSafeLogger::get_instance() {
   std::lock_guard<std::mutex> lock(mtx);
   if (instance.get() == nullptr) {
-    instance = std::unique_ptr<ThreadSafeLogger>(new ThreadSafeLogger());
+    instance = std::shared_ptr<ThreadSafeLogger>(new ThreadSafeLogger());
   }
-  return std::move(instance);
+  return instance;
 };
 
 ThreadSafeLogger::~ThreadSafeLogger(void) { logfile.close(); }
