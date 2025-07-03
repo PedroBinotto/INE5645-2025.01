@@ -43,8 +43,6 @@ std::shared_ptr<ThreadSafeLogger> ThreadSafeLogger::instance{nullptr};
 
 std::mutex ThreadSafeLogger::mtx;
 
-/* Logs `msg` to `stdout` and `LOG_DIR`
- */
 void ThreadSafeLogger::log(std::string msg) {
   std::lock_guard<std::mutex> lock(mtx);
   std::string log_entry = std::format("[{0}] {1}", currentUnixTime(), msg);
@@ -66,8 +64,6 @@ ThreadSafeLogger::ThreadSafeLogger() {
   logfile = std::ofstream(file);
 }
 
-/* Provides access to the application-wide singleton Logger instance
- */
 std::shared_ptr<ThreadSafeLogger> ThreadSafeLogger::get_instance() {
   std::lock_guard<std::mutex> lock(mtx);
   if (instance.get() == nullptr) {
