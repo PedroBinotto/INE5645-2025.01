@@ -8,6 +8,9 @@
 #define LOG_DIR "log"
 #define LOG_EXT "log"
 
+/* Thread-safe implementation of a singleton Logger class. Outputs messages to
+ * `LOG_DIR` and `stdout`
+ */
 class ThreadSafeLogger {
 protected:
   ThreadSafeLogger();

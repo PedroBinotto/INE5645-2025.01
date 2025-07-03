@@ -5,6 +5,7 @@
 #include <bitset>
 #include <format>
 #include <iostream>
+#include <string>
 #include <vector>
 
 #define DEFAULT_BLOCK_SIZE 8
@@ -16,14 +17,16 @@
 #define MESSAGE_TAG_REQUEST 100
 #define MESSAGE_TAG_RESPONSE 101
 
-/* Pretty-prints `std::block` representation to `stdout`.
+/* Formats `std::vector<T>` to pretty-print friendly representation
  */
 template <typename T>
-inline void print_vec(const std::vector<T> &list,
-                      const std::string &sep = ", ") {
-  std::cout << "[";
+inline std::string print_vec(const std::vector<T> &list,
+                             const std::string &sep = ", ") {
+  std::string msg = "[";
   for (size_t i = 0; i < list.size(); ++i)
-    std::cout << list[i] << ((i == list.size() - 1) ? "]\n" : sep);
+    msg +=
+        std::format("{0} {1}", list[i], ((i == list.size() - 1) ? "]\n" : sep));
+  return msg;
 }
 
 /* Formats `types::block` to pretty-print friendly representation
@@ -35,8 +38,8 @@ inline std::string print_block(const block &b, std::size_t size) {
   return msg;
 }
 
-/* Resolves params (BLOCK_SIZE, NUM_BLOCKS) from `stdin` or returns default
- * values when not informed.
+/* Resolves params (TIMESTAMP, BLOCK_SIZE, NUM_BLOCKS) from `stdin` or returns
+ * default values when not informed.
  *
  * Exits with error status if invalid input is passed in.
  */

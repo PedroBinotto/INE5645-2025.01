@@ -12,6 +12,9 @@ enum class GlobalRegistryIndex {
   Timestamp
 };
 
+/* Provides easy (read-only) static access to an instance-scoped immutable set
+ * of attributes
+ */
 class GlobalRegistry {
 protected:
   GlobalRegistry(int world_rank, int world_size, int num_blocks, int block_size,

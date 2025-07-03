@@ -1,6 +1,5 @@
 #include "store.hpp"
 #include <exception>
-#include <iostream>
 #include <stdexcept>
 
 std::shared_ptr<GlobalRegistry> GlobalRegistry::instance{nullptr};
@@ -15,6 +14,8 @@ GlobalRegistry::GlobalRegistry(int world_rank, int world_size, int num_blocks,
   data.emplace(GlobalRegistryIndex::Timestamp, timestamp);
 }
 
+/* Read entry from the registry
+ */
 int GlobalRegistry::get(GlobalRegistryIndex key) {
   try {
     return data.at(key);
@@ -23,6 +24,8 @@ int GlobalRegistry::get(GlobalRegistryIndex key) {
   }
 }
 
+/* Creates and returns the global registry instance
+ */
 std::shared_ptr<GlobalRegistry>
 GlobalRegistry::get_instance(int world_rank, int world_size, int num_blocks,
                              int block_size, int timestamp) {
@@ -33,6 +36,8 @@ GlobalRegistry::get_instance(int world_rank, int world_size, int num_blocks,
   return instance;
 };
 
+/* Provides access to the global registry instance
+ */
 std::shared_ptr<GlobalRegistry> GlobalRegistry::get_instance() {
   if (instance.get() == nullptr) {
     throw std::runtime_error("global registry not initialized");
