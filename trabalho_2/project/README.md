@@ -112,6 +112,46 @@ rm -rf obj bin log
 
 ---
 
+### Mais configurações
+
+Adicionalmente, também é possível variar o número de processos instanciados pelo MPI ou habilitar opções de _debug_ através do Makefile do projeto:
+
+#### Número de processos
+
+Por padrão, o comando `make run` produzirá 4 instâncias paralelas do programa através do MPI. Este atributo de configuração é determinado pela constante `N_PROCS`, que está definida no topo do [Makefile](https://github.com/PedroBinotto/INE5645-2025.01/blob/750d370288b212725144c20224e400d81b9894b4/trabalho_2/project/Makefile) do projeto, em uma seção destinada à exploração por parte do usuário:
+
+```make
+# **********************************************************************************************************************
+# "USER-LEVEL" CONFIGURATION SECTION BEGINS HERE! THESE VARIABLES ARE SAFE TO TWEAK FOR DIFFERENT BEHAVIOUR
+
+# Determines how many intances of the process will be spawned by MPICC
+N_PROCS := 4
+
+# "USER-LEVEL" CONFIGURATION SECTION ENDS HERE! DO NOT EDIT CODE BEYOND THIS LINE UNLESS YOU KNOW WHAT YOU ARE DOING
+# **********************************************************************************************************************
+```
+
+Ao alterar este valor, o comando `make run` apresentará diferenças no comportamento de acordo com a nova configuração.
+
+#### Opções de _debug_
+
+O Makefile incluído também oferece opções de _debug_ para que permitem analisar o código em execução com mais observabilidade (para desenvolvimento/estudo do programa). Para habilitar o modo de _debug_, basta _des-comentar_ a linha do arquivo que define as _flags_ usadas para depurar o programa:
+
+```make
+# ...
+BINDIR := bin
+LOGDIR := log
+TARGET := $(BINDIR)/$(APPNAME)
+# DEBUG_OPTIONS := xterm -hold -e gdb catch throw -ex run --args
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+SRCS := $(wildcard $(SRCDIR)/*.cpp)
+OBJS := $(patsubst $(SRCDIR)/%.cpp,$(OBJDIR)/%.o,$(SRCS))
+# ...
+```
+
+Por padrão, habilitar o modo de _debug_ instanciará uma janela de terminal executando o [GDB](https://www.sourceware.org/gdb/) para cada processo inicializado pelo MPI, mas este comportamento pode ser ajustado alterando os conteúdos do Makefile.
+
 ## Ambiente de desenvolvimento
 
 O processo de configuração do LSP ([clangd](https://clangd.llvm.org/)) para adequadamente incluir os artefatos MPI para consulta no editor de texto, foi necessário gerar um arquivo `compile_commands.json` através da ferramenta [Bear](https://github.com/rizsotto/Bear):

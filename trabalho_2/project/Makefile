@@ -4,7 +4,7 @@
 # Determines how many intances of the process will be spawned by MPICC
 N_PROCS := 4
 
-# "USER-LEVEL" CONFIGURATION SECTION ENDS HERE! DO NOT EDIT CODE BEYOUND THIS LINE UNLESS YOU KNOW WHAT YOU ARE DOING
+# "USER-LEVEL" CONFIGURATION SECTION ENDS HERE! DO NOT EDIT CODE BEYOND THIS LINE UNLESS YOU KNOW WHAT YOU ARE DOING
 # **********************************************************************************************************************
 
 MPICC=mpic++
