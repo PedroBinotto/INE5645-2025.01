@@ -142,11 +142,11 @@ inline block RemoteRepository::read(int key) {
   if (!blk) {
     block buffer = std::make_unique<uint8_t[]>(block_size);
 
-    handle_error(MPI_Send(&key, 1, MPI::INT, target, MESSAGE_TAG_REQUEST,
-                          MPI_COMM_WORLD),
+    handle_error(MPI_Send(&key, 1, MPI::INT, target,
+                          MESSAGE_TAG_BLOCK_READ_REQUEST, MPI_COMM_WORLD),
                  "MPI_Send");
     handle_error(MPI_Recv(buffer.get(), block_size, MPI_UNSIGNED_CHAR, target,
-                          MESSAGE_TAG_RESPONSE, MPI_COMM_WORLD,
+                          MESSAGE_TAG_BLOCK_READ_RESPONSE, MPI_COMM_WORLD,
                           MPI_STATUS_IGNORE),
                  "MPI_Recv");
 

@@ -14,8 +14,10 @@
 #define MAX_NUM_BLOCKS 32
 #define MASTER_INSTANCE_ID 0
 
-#define MESSAGE_TAG_REQUEST 100
-#define MESSAGE_TAG_RESPONSE 101
+#define MESSAGE_TAG_BLOCK_READ_REQUEST 100
+#define MESSAGE_TAG_BLOCK_READ_RESPONSE 101
+#define MESSAGE_TAG_BLOCK_WRITE_REQUEST 102
+#define MESSAGE_TAG_BLOCK_UPDATE_NOTIFICATION 103
 
 /* Formats `std::vector<T>` to pretty-print friendly representation
  */
@@ -157,6 +159,15 @@ inline memory_map resolve_maintainers(int world_size, int num_blocks) {
  */
 inline std::string identify_log_string(std::string input, int world_rank) {
   return std::format("(@proc {0}) ", world_rank) + input;
+}
+
+/* Calculates the total size (in bytes) of a WRITE message buffer, considering
+ * the following buffer layout:
+ *
+ * `[ int target_index {sizeof(int) bytes} ][ block data {BLOCK_SIZE bytes} ]`
+ */
+int get_total_write_message_size(int block_size) {
+  return sizeof(int) + block_size;
 }
 
 #endif
