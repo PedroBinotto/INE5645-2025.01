@@ -3,6 +3,7 @@
 
 #include <cstdint>
 #include <memory>
+#include <thread>
 #include <tuple>
 #include <vector>
 
@@ -14,6 +15,14 @@
  * `std::get<2>(program_args)` returns `NUM_BLOCKS`
  */
 typedef std::tuple<std::string, int, int> program_args;
+
+/* Represents the server/listener thread model as a tuple, wherein:
+ *
+ * `std::get<0>(server_threads)` returns `read_listener`
+ * `std::get<1>(server_threads)` returns `write_listener`
+ * `std::get<2>(server_threads)` returns `notification_listener`
+ */
+typedef std::tuple<std::thread, std::thread, std::thread> server_threads;
 
 /* "Block" datatype representation; each block is a bytearray size `BLOCK_SIZE`
  */

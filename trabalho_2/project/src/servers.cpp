@@ -31,35 +31,25 @@ void read_listener(memory_map mem_map, UnifiedRepositoryFacade &repo) {
   std::vector<int> local_blocks = mem_map.at(world_rank);
   std::set<int> local_set = std::set(local_blocks.begin(), local_blocks.end());
 
-  thread_safe_log(identify_log_string("Acquired memory", world_rank));
-
   while (true) {
-    try {
-      int flag, probe_result;
-      MPI_Status status;
+    int flag, probe_result;
+    MPI_Status status;
 
-      probe_result = MPI_Iprobe(MPI_ANY_SOURCE, MESSAGE_TAG_BLOCK_READ_REQUEST,
-                                MPI_COMM_WORLD, &flag, &status);
-      thread_safe_log(identify_log_string("Probed", world_rank));
-
-      if (probe_result == MPI_SUCCESS && flag) {
-        thread_safe_log(identify_log_string("Received request", world_rank));
-        handle_read(local_set, repo, status.MPI_SOURCE);
-      }
-
-      std::this_thread::sleep_for(std::chrono::microseconds(100));
-    } catch (const std::exception &e) {
-      thread_safe_log(identify_log_string(
-          std::format("Caught exception {0}", e.what()), world_rank));
+    probe_result = MPI_Iprobe(MPI_ANY_SOURCE, MESSAGE_TAG_BLOCK_READ_REQUEST,
+                              MPI_COMM_WORLD, &flag, &status);
+    if (probe_result == MPI_SUCCESS && flag) {
+      handle_read(local_set, repo, status.MPI_SOURCE);
     }
-  }
 
-  thread_safe_log(identify_log_string("Broke out of loop", world_rank));
+    std::this_thread::sleep_for(std::chrono::microseconds(100));
+  }
 }
 
 void write_listener(memory_map mem_map, UnifiedRepositoryFacade &repo) {
   std::shared_ptr<GlobalRegistry> registry = GlobalRegistry::get_instance();
   int world_rank = registry->get(GlobalRegistryIndex::WorldRank);
+
+  thread_safe_log(identify_log_string("Write thread started", world_rank));
 
   std::vector<int> local_blocks = mem_map.at(world_rank);
   std::set<int> local_set = std::set(local_blocks.begin(), local_blocks.end());
@@ -80,11 +70,9 @@ void write_listener(memory_map mem_map, UnifiedRepositoryFacade &repo) {
 
 void handle_read(std::set<int> &local_blocks, UnifiedRepositoryFacade &repo,
                  int source) {
-
   std::shared_ptr<GlobalRegistry> registry = GlobalRegistry::get_instance();
   int world_rank = registry->get(GlobalRegistryIndex::WorldRank);
   int block_size = registry->get(GlobalRegistryIndex::BlockSize);
-  thread_safe_log(identify_log_string("Hadling read", world_rank));
 
   int requested_block;
 
@@ -103,13 +91,10 @@ void handle_read(std::set<int> &local_blocks, UnifiedRepositoryFacade &repo,
     throw std::runtime_error(
         "requested block is not maintained by this instance");
   try {
-    thread_safe_log(identify_log_string("inside try block", world_rank));
     block data = repo.read(requested_block);
     int send_result =
         MPI_Send(data.get(), block_size, MPI_UNSIGNED_CHAR, source,
                  MESSAGE_TAG_BLOCK_READ_RESPONSE, MPI_COMM_WORLD);
-
-    thread_safe_log(identify_log_string("sent block", world_rank));
 
     if (send_result != MPI_SUCCESS)
       throw std::runtime_error("failed to send response");
@@ -154,4 +139,12 @@ void handle_write(std::set<int> &local_blocks, UnifiedRepositoryFacade &repo,
   } catch (const std::exception &e) {
     throw std::runtime_error("error handling request");
   }
+}
+
+void notification_listener(memory_map mem_map, UnifiedRepositoryFacade &repo) {
+  std::shared_ptr<GlobalRegistry> registry = GlobalRegistry::get_instance();
+  int world_rank = registry->get(GlobalRegistryIndex::WorldRank);
+
+  thread_safe_log(
+      identify_log_string("Notification thread started", world_rank));
 }

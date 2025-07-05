@@ -9,9 +9,11 @@
 #include <stdio.h>
 #include <string>
 #include <thread>
+#include <tuple>
 #include <unistd.h>
 
-void start_helper_treads(memory_map mem_map, UnifiedRepositoryFacade &repo);
+server_threads start_helper_treads(memory_map mem_map,
+                                   UnifiedRepositoryFacade &repo);
 
 int main(int argc, const char **argv) {
   std::mt19937 rng{std::random_device{}()};
@@ -38,7 +40,7 @@ int main(int argc, const char **argv) {
   UnifiedRepositoryFacade repo =
       UnifiedRepositoryFacade(mem_map, block_size, world_rank);
 
-  start_helper_treads(mem_map, std::ref(repo));
+  server_threads threads = start_helper_treads(mem_map, std::ref(repo));
 
   MPI_Barrier(MPI_COMM_WORLD);
 
@@ -57,14 +59,16 @@ int main(int argc, const char **argv) {
         std::chrono::milliseconds(5000 / (target_block + 1)));
   }
 
+  std::apply([](auto &&...thread) { ((thread.join()), ...); }, threads);
   MPI_Finalize();
 }
 
-void start_helper_treads(memory_map mem_map, UnifiedRepositoryFacade &repo) {
-  std::thread read_server_thread =
-      std::thread(read_listener, mem_map, std::ref(repo));
-  // std::thread write_server_thread =
-  //     std::thread(write_listener, mem_map, std::ref(repo));
-  // std::thread notification_server_thread =
-  //     std::thread(notification_listener, mem_map, std::ref(repo));
+/* Starts all server threads and returns them `server_threads`:
+ */
+server_threads start_helper_treads(memory_map mem_map,
+                                   UnifiedRepositoryFacade &repo) {
+  return std::make_tuple(
+      std::thread(read_listener, mem_map, std::ref(repo)),
+      std::thread(write_listener, mem_map, std::ref(repo)),
+      std::thread(notification_listener, mem_map, std::ref(repo)));
 }
