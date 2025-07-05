@@ -28,9 +28,15 @@ using block = std::unique_ptr<std::uint8_t[]>;
  */
 typedef std::vector<std::vector<int>> memory_map;
 
-struct WriteMessageBuffer {
-  int target_block;
-  block incoming_data;
+struct WriteMessageBuffer
+{
+    int target_block;
+    block incoming_data;
+};
+
+struct NotificationMessageBuffer : WriteMessageBuffer
+{
+    int64_t timestamp;
 };
 
 #endif
