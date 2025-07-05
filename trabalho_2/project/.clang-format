@@ -1,8 +1,13 @@
 BasedOnStyle: LLVM
 IndentWidth: 4
 ColumnLimit: 120
-BreakBeforeBraces: Allman
-AllowAllParametersOfDeclarationOnNextLine: false
+BreakBeforeBraces: Attach
+
 BinPackParameters: false
 BinPackArguments: false
-PointerAlignment: Left
+AllowAllParametersOfDeclarationOnNextLine: false
+AllowAllArgumentsOnNextLine: false
+PenaltyBreakBeforeFirstCallParameter: 1
+PenaltyBreakFunctionDeclaration: 1
+
+AllowShortFunctionsOnASingleLine: Empty
