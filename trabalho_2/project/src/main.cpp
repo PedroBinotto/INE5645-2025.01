@@ -63,8 +63,8 @@ int main(int argc, const char **argv) {
 void start_helper_treads(memory_map mem_map, UnifiedRepositoryFacade &repo) {
   std::thread read_server_thread =
       std::thread(read_listener, mem_map, std::ref(repo));
-  std::thread write_server_thread =
-      std::thread(write_listener, mem_map, std::ref(repo));
-  std::thread notification_server_thread =
-      std::thread(notification_listener, mem_map, std::ref(repo));
+  // std::thread write_server_thread =
+  //     std::thread(write_listener, mem_map, std::ref(repo));
+  // std::thread notification_server_thread =
+  //     std::thread(notification_listener, mem_map, std::ref(repo));
 }

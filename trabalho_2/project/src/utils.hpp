@@ -174,21 +174,25 @@ inline std::string identify_log_string(std::string input, int world_rank) {
  *
  * `[ int target_index {sizeof(int) bytes} ][ block data {BLOCK_SIZE bytes} ]`
  */
-int get_total_write_message_size() {
+inline int get_total_write_message_buffer_size() {
   std::shared_ptr<GlobalRegistry> registry = GlobalRegistry::get_instance();
   int block_size = registry->get(GlobalRegistryIndex::BlockSize);
   return sizeof(int) + block_size;
 }
 
-/* Encodes a WRITE message from `key`, `value` to the buffer layout:
+/* Encodes a WRITE message from `WriteMessageBuffer` to the buffer layout:
  *
  * `[ int target_index {sizeof(int) bytes} ][ block data {BLOCK_SIZE bytes} ]`
  */
-inline std::unique_ptr<uint8_t[]> encode_write_message(int key, block value) {
+inline std::unique_ptr<uint8_t[]>
+encode_write_message(std::unique_ptr<WriteMessageBuffer> message) {
+  int key = message->target_block;
+  block value = std::move(message->incoming_data);
+
   std::shared_ptr<GlobalRegistry> registry = GlobalRegistry::get_instance();
   int block_size = registry->get(GlobalRegistryIndex::BlockSize);
 
-  int total_size = get_total_write_message_size();
+  int total_size = get_total_write_message_buffer_size();
   std::unique_ptr<uint8_t[]> message_buffer =
       std::make_unique<uint8_t[]>(total_size);
 

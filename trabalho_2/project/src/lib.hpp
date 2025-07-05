@@ -144,7 +144,7 @@ inline block RemoteRepository::read(int key) {
   if (!blk) {
     block buffer = std::make_unique<uint8_t[]>(block_size);
 
-    handle_error(MPI_Send(&key, 1, MPI::INT, target,
+    handle_error(MPI_Send(&key, 1, MPI_INT, target,
                           MESSAGE_TAG_BLOCK_READ_REQUEST, MPI_COMM_WORLD),
                  "MPI_Send");
     handle_error(MPI_Recv(buffer.get(), block_size, MPI_UNSIGNED_CHAR, target,
@@ -166,10 +166,11 @@ inline block RemoteRepository::read(int key) {
 inline void RemoteRepository::write(int key, block value) {
   std::shared_ptr<GlobalRegistry> registry = GlobalRegistry::get_instance();
   int world_size = registry->get(GlobalRegistryIndex::WorldSize);
-  int total_size = get_total_write_message_size();
+  int total_size = get_total_write_message_buffer_size();
 
   std::unique_ptr<uint8_t[]> message_buffer =
-      encode_write_message(key, std::move(value));
+      encode_write_message(std::make_unique<WriteMessageBuffer>(
+          WriteMessageBuffer(key, std::move(value))));
 
   MPI_Send(&message_buffer, total_size, MPI_UNSIGNED_CHAR,
            resolve_maintainer(world_size, key), MESSAGE_TAG_BLOCK_WRITE_REQUEST,
