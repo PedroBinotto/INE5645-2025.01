@@ -38,3 +38,4 @@ log/**
 **/**/.nvimrc.lua
 .cache
 compile_commands.json
+.idea

@@ -1,0 +1,13 @@
+BasedOnStyle: LLVM
+IndentWidth: 4
+ColumnLimit: 120
+BreakBeforeBraces: Attach
+
+BinPackParameters: false
+BinPackArguments: false
+AllowAllParametersOfDeclarationOnNextLine: false
+AllowAllArgumentsOnNextLine: false
+PenaltyBreakBeforeFirstCallParameter: 1
+PenaltyBreakFunctionDeclaration: 1
+
+AllowShortFunctionsOnASingleLine: Empty
