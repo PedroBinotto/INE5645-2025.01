@@ -47,10 +47,8 @@ inline LocalRepository::LocalRepository(memory_map mem_map, int block_size,
     std::fill_n(b.get(), block_size, 0);
 
     if (is_verbose(world_rank)) { // TODO: add actual info
-      thread_safe_log(
-          identify_log_string(std::format("LocalRepository[{0}]: {1}", i,
-                                          print_block(b, block_size)),
-                              world_rank));
+      thread_safe_log_with_id(std::format("LocalRepository[{0}]: {1}", i,
+                                          print_block(b, block_size)));
     }
 
     blocks.emplace(i, std::move(b));
@@ -108,12 +106,11 @@ inline RemoteRepository::RemoteRepository(memory_map mem_map, int block_size,
       std::unique_ptr<uint8_t[]> block;
 
       if (is_verbose(world_rank)) { // TODO: add actual info
-        thread_safe_log(identify_log_string(
-            std::format("RemoteRepository[{0}]: ", j), world_rank));
+        thread_safe_log_with_id(std::format("RemoteRepository[{0}]: ", j));
         if (block) {
-          thread_safe_log(print_block(block, block_size));
+          thread_safe_log_with_id(print_block(block, block_size));
         } else {
-          thread_safe_log(identify_log_string("Empty block!", world_rank));
+          thread_safe_log_with_id("Empty block!");
         }
       }
 
@@ -171,6 +168,9 @@ inline void RemoteRepository::write(int key, block value) {
   std::unique_ptr<uint8_t[]> message_buffer =
       encode_write_message(std::make_unique<WriteMessageBuffer>(
           WriteMessageBuffer(key, std::move(value))));
+
+  thread_safe_log_with_id(std::format("Sending write operation... {0}",
+                                      print_block(message_buffer, total_size)));
 
   MPI_Send(&message_buffer, total_size, MPI_UNSIGNED_CHAR,
            resolve_maintainer(world_size, key), MESSAGE_TAG_BLOCK_WRITE_REQUEST,

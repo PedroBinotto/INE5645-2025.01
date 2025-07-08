@@ -1,6 +1,7 @@
 #ifndef __UTILS_H__
 #define __UTILS_H__
 
+#include "logger.hpp"
 #include "store.hpp"
 #include "types.hpp"
 #include <bitset>
@@ -163,12 +164,6 @@ inline int resolve_maintainer(int world_size, int key) {
   return key % world_size;
 }
 
-/* Adds a process-rank identifier tag to the beggining of the message
- */
-inline std::string identify_log_string(std::string input, int world_rank) {
-  return std::format("(@proc {0}) ", world_rank) + input;
-}
-
 /* Calculates the total size (in bytes) of a WRITE message buffer, considering
  * the following buffer layout:
  *
@@ -206,19 +201,42 @@ encode_write_message(std::unique_ptr<WriteMessageBuffer> message) {
  *
  * `[ int target_index {sizeof(int) bytes} ][ block data {BLOCK_SIZE bytes} ]`
  */
-inline std::unique_ptr<WriteMessageBuffer>
+inline WriteMessageBuffer
 decode_write_message(std::unique_ptr<uint8_t[]> message_buffer) {
   std::shared_ptr<GlobalRegistry> registry = GlobalRegistry::get_instance();
   int block_size = registry->get(GlobalRegistryIndex::BlockSize);
+  int world_rank = registry->get(GlobalRegistryIndex::WorldRank);
+
+  thread_safe_log_with_id("Decoding write message...");
 
   int key;
   std::unique_ptr<uint8_t[]> value = std::make_unique<uint8_t[]>(block_size);
 
+  thread_safe_log_with_id("Allocated memory for buffer");
+
   std::memcpy(&key, message_buffer.get(), sizeof(int));
   std::memcpy(value.get(), message_buffer.get() + sizeof(int), block_size);
 
-  return std::make_unique<WriteMessageBuffer>(
-      WriteMessageBuffer(key, std::move(value)));
+  thread_safe_log_with_id("Copied memory to buffer");
+
+  WriteMessageBuffer result = WriteMessageBuffer(key, std::move(value));
+
+  thread_safe_log_with_id(std::format(
+      "Instantiated object: key {0}, value {1}", result.target_block,
+      print_block(result.incoming_data, block_size)));
+
+  return result;
+}
+
+inline block get_random_block() {
+  std::shared_ptr<GlobalRegistry> registry = GlobalRegistry::get_instance();
+  int block_size = registry->get(GlobalRegistryIndex::BlockSize);
+  std::unique_ptr<uint8_t[]> buffer = std::make_unique<uint8_t[]>(block_size);
+
+  for (int i = 0; i < block_size; i++)
+    buffer[i] = rand() % 256;
+
+  return buffer;
 }
 
 #endif

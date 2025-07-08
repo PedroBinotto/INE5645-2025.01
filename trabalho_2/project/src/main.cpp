@@ -1,4 +1,5 @@
 #include "lib.hpp"
+#include "logger.hpp"
 #include "servers.hpp"
 #include "store.hpp"
 #include "types.hpp"
@@ -6,6 +7,7 @@
 #include <format>
 #include <mpi.h>
 #include <random>
+#include <stdexcept>
 #include <stdio.h>
 #include <string>
 #include <thread>
@@ -17,13 +19,17 @@ server_threads start_helper_treads(memory_map mem_map,
 
 int main(int argc, const char **argv) {
   std::mt19937 rng{std::random_device{}()};
-  int world_size, world_rank, name_len;
+  int world_size, world_rank, name_len, thread_safety_provided;
   char processor_name[MPI_MAX_PROCESSOR_NAME];
 
-  MPI_Init(NULL, NULL);
+  MPI_Init_thread(NULL, NULL, MPI_THREAD_MULTIPLE, &thread_safety_provided);
   MPI_Comm_size(MPI_COMM_WORLD, &world_size);
   MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
   MPI_Get_processor_name(processor_name, &name_len);
+
+  if (thread_safety_provided < MPI_THREAD_MULTIPLE) {
+    throw std::runtime_error("multithread not supported");
+  }
 
   const bool verbose = is_verbose(world_rank);
   program_args params = capture_args(argc, argv, verbose);
@@ -44,16 +50,30 @@ int main(int argc, const char **argv) {
 
   MPI_Barrier(MPI_COMM_WORLD);
 
-  thread_safe_log(std::format(
+  thread_safe_log_with_id(std::format(
       "Hello, World! from processor {0}, rank {1} out of {2} processors",
       processor_name, world_rank, world_size));
 
   while (true) {
     int target_block = rng() % num_blocks;
-    thread_safe_log(identify_log_string(
-        std::format("Reading block {0}: {1}", target_block,
-                    print_block(repo.read(target_block), block_size)),
-        world_rank));
+    int operation = rng() % 2;
+    block b;
+
+    // DEBUG
+    if (operation) {
+      block v = get_random_block();
+      repo.write(target_block, std::move(v));
+      b = repo.read(target_block);
+      thread_safe_log_with_id("READ");
+    } else {
+      b = repo.read(target_block);
+      thread_safe_log_with_id("WRITE");
+    }
+    // DEBUG
+
+    thread_safe_log_with_id(std::format(
+        "{0} block {1}: {2}", operation ? "Reading from" : "Writing to",
+        target_block, print_block(b, block_size)));
 
     std::this_thread::sleep_for(
         std::chrono::milliseconds(5000 / (target_block + 1)));
