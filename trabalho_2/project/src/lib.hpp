@@ -45,11 +45,6 @@ inline LocalRepository::LocalRepository(memory_map mem_map, int block_size,
     block b = std::make_shared<std::uint8_t[]>(block_size);
     std::fill_n(b.get(), block_size, 0);
 
-    if (is_verbose(world_rank)) { // TODO: add actual info
-      thread_safe_log_with_id(
-          std::format("LocalRepository[{0}]: {1}", i, print_block(b)));
-    }
-
     blocks.emplace(i, b);
   }
 }
@@ -103,16 +98,6 @@ inline RemoteRepository::RemoteRepository(memory_map mem_map, int block_size,
 
     for (int j : mem_map.at(i)) {
       block b;
-
-      if (is_verbose(world_rank)) { // TODO: add actual info
-        thread_safe_log_with_id(std::format("RemoteRepository[{0}]: ", j));
-        if (b) {
-          thread_safe_log_with_id(print_block(b));
-        } else {
-          thread_safe_log_with_id("Empty block!");
-        }
-      }
-
       blocks.emplace(j, std::make_pair(i, b));
     }
   }

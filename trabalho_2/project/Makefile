@@ -19,7 +19,7 @@ OBJDIR := obj
 BINDIR := bin
 LOGDIR := log
 TARGET := $(BINDIR)/$(APPNAME)
-DEBUG_OPTIONS := xterm -e gdb catch throw -ex "break std::terminate" -ex "run" --args
+# DEBUG_OPTIONS := xterm -e gdb catch throw -ex "break std::terminate" -ex "run" --args
 
 SRCS := $(wildcard $(SRCDIR)/*.cpp)
 OBJS := $(patsubst $(SRCDIR)/%.cpp,$(OBJDIR)/%.o,$(SRCS))

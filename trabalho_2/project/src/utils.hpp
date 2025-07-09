@@ -21,7 +21,7 @@ inline std::string print_vec(const std::vector<T> &list,
   std::string msg = "[";
   for (size_t i = 0; i < list.size(); ++i)
     msg +=
-        std::format("{0} {1}", list[i], ((i == list.size() - 1) ? "]\n" : sep));
+        std::format("{0}{1}", list[i], ((i == list.size() - 1) ? "]\n" : sep));
   return msg;
 }
 
@@ -58,8 +58,9 @@ inline program_args capture_args(int argc, const char **argv,
     if (verbose) {
       std::cout << "\033[33m[BLOCK_SIZE, NUM_BLOCKS] não informados; "
                    "usando parâmetros padrão: \033[0m"
+                << std::endl
+                << print_vec<int>({DEFAULT_BLOCK_SIZE, DEFAULT_NUM_BLOCKS})
                 << std::endl;
-      print_vec<int>({DEFAULT_BLOCK_SIZE, DEFAULT_NUM_BLOCKS});
     }
 
     return program_args(argv[1], DEFAULT_BLOCK_SIZE, DEFAULT_NUM_BLOCKS);
@@ -68,13 +69,14 @@ inline program_args capture_args(int argc, const char **argv,
     if (verbose) {
       std::cout << "\033[33mUsando parâmetros [BLOCK_SIZE] "
                    "informados: \033[0m"
+                << std::endl
+                << print_vec(std::vector<std::string>(argv + 2, argv + argc))
                 << std::endl;
-      print_vec(std::vector<std::string>(argv + 2, argv + argc));
 
       std::cout << "\033[33m[NUM_BLOCKS] não informados; usando "
                    "parâmetros padrão: \033[0m"
-                << std::endl;
-      print_vec<int>({DEFAULT_NUM_BLOCKS});
+                << std::endl
+                << print_vec<int>({DEFAULT_NUM_BLOCKS}) << std::endl;
     }
 
     return program_args(argv[1], std::stoi(argv[2]), DEFAULT_NUM_BLOCKS);
@@ -83,16 +85,18 @@ inline program_args capture_args(int argc, const char **argv,
     if (verbose) {
       std::cout << "\033[33mUsando parâmetros [BLOCK_SIZE, NUM_BLOCKS] "
                    "informados: \033[0m"
+                << std::endl
+                << print_vec(std::vector<std::string>(argv + 2, argv + argc))
                 << std::endl;
-      print_vec(std::vector<std::string>(argv + 2, argv + argc));
     }
 
     return program_args(argv[1], std::stoi(argv[2]), std::stoi(argv[3]));
     break;
   default:
     if (verbose) {
-      std::cerr << "\033[31mEntrada inválida: \033[0m" << std::endl;
-      print_vec(std::vector<std::string>(argv + 2, argv + argc));
+      std::cerr << "\033[31mEntrada inválida: \033[0m" << std::endl
+                << print_vec(std::vector<std::string>(argv + 2, argv + argc))
+                << std::endl;
       std::cout << "\033[31mDeve ser " << argv[0] << " <BLOCK_SIZE>\033[0m ou"
                 << std::endl;
       std::cout << "\033[31mDeve ser " << argv[0]
