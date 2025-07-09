@@ -26,7 +26,7 @@ typedef std::tuple<std::thread, std::thread, std::thread> server_threads;
 
 /* "Block" datatype representation; each block is a bytearray size `BLOCK_SIZE`
  */
-using block = std::unique_ptr<std::uint8_t[]>;
+using block = std::shared_ptr<std::uint8_t[]>;
 
 /* Represents the distributed memory allocation between the multiple instances
  * of the program, wherein:
@@ -38,8 +38,8 @@ using block = std::unique_ptr<std::uint8_t[]>;
 typedef std::vector<std::vector<int>> memory_map;
 
 struct WriteMessageBuffer {
-  int target_block;
-  block incoming_data;
+  int key;
+  block data;
 };
 
 struct NotificationMessageBuffer : WriteMessageBuffer {

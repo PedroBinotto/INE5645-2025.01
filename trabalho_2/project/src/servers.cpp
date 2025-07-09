@@ -41,6 +41,8 @@ void read_listener(memory_map mem_map, UnifiedRepositoryFacade &repo) {
     probe_result = MPI_Iprobe(MPI_ANY_SOURCE, MESSAGE_TAG_BLOCK_READ_REQUEST,
                               MPI_COMM_WORLD, &flag, &status);
     if (probe_result == MPI_SUCCESS && flag) {
+      thread_safe_log_with_id(
+          "Detected READ operation request at `listener` level");
       handle_read(local_set, repo, status.MPI_SOURCE);
     }
 
@@ -66,8 +68,11 @@ void write_listener(memory_map mem_map, UnifiedRepositoryFacade &repo) {
     probe_result = MPI_Iprobe(MPI_ANY_SOURCE, MESSAGE_TAG_BLOCK_WRITE_REQUEST,
                               MPI_COMM_WORLD, &flag, &status);
 
-    if (probe_result == MPI_SUCCESS && flag)
+    if (probe_result == MPI_SUCCESS && flag) {
+      thread_safe_log_with_id(
+          "Detected WRITE operation request at `listener` level");
       handle_write(local_set, repo, status.MPI_SOURCE);
+    }
 
     std::this_thread::sleep_for(std::chrono::microseconds(1000000));
   }
@@ -76,10 +81,10 @@ void write_listener(memory_map mem_map, UnifiedRepositoryFacade &repo) {
 void handle_read(std::set<int> &local_blocks, UnifiedRepositoryFacade &repo,
                  int source) {
   std::shared_ptr<GlobalRegistry> registry = GlobalRegistry::get_instance();
-  int world_rank = registry->get(GlobalRegistryIndex::WorldRank);
   int block_size = registry->get(GlobalRegistryIndex::BlockSize);
 
-  thread_safe_log_with_id("Handling read operation...");
+  thread_safe_log_with_id(
+      "Processing READ operation request at `handler` level...");
 
   int requested_block;
 
@@ -88,14 +93,17 @@ void handle_read(std::set<int> &local_blocks, UnifiedRepositoryFacade &repo,
                              MPI_STATUS_IGNORE);
 
   thread_safe_log_with_id(
-      std::format("received request for block {0}", requested_block));
+      std::format("Successfully interpreted at `handler` level that targeted "
+                  "block for READ operation is {0}",
+                  requested_block));
 
   if (recv_result != MPI_SUCCESS)
-    throw std::runtime_error("failed to receive request");
+    throw std::runtime_error(
+        "MPI error while processing READ request at `handler` level");
 
   if (!local_blocks.contains(requested_block))
     throw std::runtime_error(
-        "requested block is not maintained by this instance");
+        "Targeted block for READ operation is not maintained by this instance");
   try {
     block data = repo.read(requested_block);
     int send_result =
@@ -103,62 +111,53 @@ void handle_read(std::set<int> &local_blocks, UnifiedRepositoryFacade &repo,
                  MESSAGE_TAG_BLOCK_READ_RESPONSE, MPI_COMM_WORLD);
 
     if (send_result != MPI_SUCCESS)
-      throw std::runtime_error("failed to send response");
+      throw std::runtime_error("MPI error while attempting to send response to "
+                               "READ operation request at `handler` level");
   } catch (const std::exception &e) {
-    throw std::runtime_error("error handling request");
+    throw std::runtime_error(
+        "Encountered unexpected exception at `handler` level while attempting "
+        "to process READ operation request");
   }
 }
 
 void handle_write(std::set<int> &local_blocks, UnifiedRepositoryFacade &repo,
                   int source) {
-  std::shared_ptr<GlobalRegistry> registry = GlobalRegistry::get_instance();
-  int world_rank = registry->get(GlobalRegistryIndex::WorldRank);
-  int block_size = registry->get(GlobalRegistryIndex::BlockSize);
   int total_size = get_total_write_message_buffer_size();
 
-  thread_safe_log_with_id("Handling write operation...");
+  thread_safe_log_with_id(
+      "Processing WRITE operation request at `handler` level...");
 
-  std::unique_ptr<uint8_t[]> result_buffer =
-      std::make_unique<uint8_t[]>(total_size);
-  int recv_result = MPI_Recv(&result_buffer, total_size, MPI_UNSIGNED_CHAR,
+  std::shared_ptr<uint8_t[]> result_buffer =
+      std::make_shared<uint8_t[]>(total_size);
+  int recv_result = MPI_Recv(result_buffer.get(), total_size, MPI_UNSIGNED_CHAR,
                              source, MESSAGE_TAG_BLOCK_WRITE_REQUEST,
                              MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
-  thread_safe_log_with_id(std::format("Received write operation OK... {0}",
-                                      print_block(result_buffer, total_size)));
+  thread_safe_log_with_id(
+      std::format("Successfully interpreted at `handler` level WRITE operation "
+                  "request with total buffer contents {0}",
+                  print_block(result_buffer, total_size)));
 
-  WriteMessageBuffer message_buffer =
-      decode_write_message(std::move(result_buffer));
-
-  thread_safe_log(identify_log_string(
-      std::format("Received object: key {0}, value {1}",
-                  message_buffer.target_block,
-                  print_block(message_buffer.incoming_data, block_size)),
-      world_rank));
-
-  thread_safe_log_with_id("Decoded write operation OK...");
-
-  thread_safe_log_with_id(std::format("Processing write for block {0}",
-                                      message_buffer.target_block));
+  WriteMessageBuffer message_buffer = decode_write_message(result_buffer);
 
   if (recv_result != MPI_SUCCESS)
-    throw std::runtime_error("failed to receive request");
-
-  if (!local_blocks.contains(message_buffer.target_block))
     throw std::runtime_error(
-        "requested block is not maintained by this instance");
-  try {
-    repo.write(message_buffer.target_block,
-               std::move(message_buffer.incoming_data));
+        "MPI error while processing WRITE request at `handler` level");
 
-    thread_safe_log_with_id("Wrote successfully");
+  if (!local_blocks.contains(message_buffer.key))
+    throw std::runtime_error("Targeted block for WRITE operation is not "
+                             "maintained by this instance");
+  try {
+    repo.write(message_buffer.key, std::move(message_buffer.data));
 
     // TODO: Notify for cache invalidation
     // int send_result = MPI_Bcast(result_buffer, total_size, MPI_UNSIGNED_CHAR,
     // source, MPI_COMM_WORLD); if (send_result != MPI_SUCCESS)
     //   throw std::runtime_error("failed to notify");
   } catch (const std::exception &e) {
-    throw std::runtime_error("error handling request");
+    throw std::runtime_error(
+        "Encountered unexpected exception at `handler` level while attempting "
+        "to process WRITE operation request");
   }
 }
 

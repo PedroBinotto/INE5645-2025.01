@@ -3,7 +3,6 @@
 
 #include "logger.hpp"
 #include "mpi.h"
-#include "ompi/mpi/cxx/mpicxx.h"
 #include "store.hpp"
 #include "types.hpp"
 #include "utils.hpp"
@@ -43,12 +42,12 @@ inline LocalRepository::LocalRepository(memory_map mem_map, int block_size,
                                         int world_rank)
     : mem_map(mem_map), blocks(std::map<int, block>()), block_size(block_size) {
   for (int i : mem_map.at(world_rank)) {
-    block b = std::make_unique<std::uint8_t[]>(block_size);
+    block b = std::make_shared<std::uint8_t[]>(block_size);
     std::fill_n(b.get(), block_size, 0);
 
     if (is_verbose(world_rank)) { // TODO: add actual info
-      thread_safe_log_with_id(std::format("LocalRepository[{0}]: {1}", i,
-                                          print_block(b, block_size)));
+      thread_safe_log_with_id(
+          std::format("LocalRepository[{0}]: {1}", i, print_block(b)));
     }
 
     blocks.emplace(i, std::move(b));
@@ -65,7 +64,7 @@ inline block LocalRepository::read(int key) {
   if (it == blocks.end())
     throw std::runtime_error("bad index");
 
-  block copy = std::make_unique<std::uint8_t[]>(block_size);
+  block copy = std::make_shared<std::uint8_t[]>(block_size);
   std::copy_n(it->second.get(), block_size, copy.get());
 
   return copy;
@@ -103,18 +102,18 @@ inline RemoteRepository::RemoteRepository(memory_map mem_map, int block_size,
       continue;
 
     for (int j : mem_map.at(i)) {
-      std::unique_ptr<uint8_t[]> block;
+      block b;
 
       if (is_verbose(world_rank)) { // TODO: add actual info
         thread_safe_log_with_id(std::format("RemoteRepository[{0}]: ", j));
-        if (block) {
-          thread_safe_log_with_id(print_block(block, block_size));
+        if (b) {
+          thread_safe_log_with_id(print_block(b));
         } else {
           thread_safe_log_with_id("Empty block!");
         }
       }
 
-      blocks.emplace(j, std::make_pair(i, std::move(block)));
+      blocks.emplace(j, std::make_pair(i, std::move(b)));
     }
   }
 }
@@ -139,7 +138,7 @@ inline block RemoteRepository::read(int key) {
   block &blk = block_pair.second;
 
   if (!blk) {
-    block buffer = std::make_unique<uint8_t[]>(block_size);
+    block buffer = std::make_shared<uint8_t[]>(block_size);
 
     handle_error(MPI_Send(&key, 1, MPI_INT, target,
                           MESSAGE_TAG_BLOCK_READ_REQUEST, MPI_COMM_WORLD),
@@ -149,11 +148,11 @@ inline block RemoteRepository::read(int key) {
                           MPI_STATUS_IGNORE),
                  "MPI_Recv");
 
-    blk = std::make_unique<uint8_t[]>(block_size);
+    blk = std::make_shared<uint8_t[]>(block_size);
     std::copy_n(buffer.get(), block_size, blk.get());
   }
 
-  block copy = std::make_unique<std::uint8_t[]>(block_size);
+  block copy = std::make_shared<std::uint8_t[]>(block_size);
   std::copy_n(blk.get(), block_size, copy.get());
 
   return copy;
@@ -161,20 +160,25 @@ inline block RemoteRepository::read(int key) {
 
 /* Write `value` to memory block identified by `key` */
 inline void RemoteRepository::write(int key, block value) {
-  std::shared_ptr<GlobalRegistry> registry = GlobalRegistry::get_instance();
-  int world_size = registry->get(GlobalRegistryIndex::WorldSize);
   int total_size = get_total_write_message_buffer_size();
+  int target_maintainer = resolve_maintainer(key);
 
-  std::unique_ptr<uint8_t[]> message_buffer =
-      encode_write_message(std::make_unique<WriteMessageBuffer>(
-          WriteMessageBuffer(key, std::move(value))));
+  thread_safe_log_with_id(
+      std::format("Received method call to execute remote WRITE operation to "
+                  "block {0} with value {1} on process ID {2}",
+                  key, print_block(value), target_maintainer));
 
-  thread_safe_log_with_id(std::format("Sending write operation... {0}",
+  WriteMessageBuffer buffer = WriteMessageBuffer(key, value);
+
+  std::shared_ptr<uint8_t[]> message_buffer = encode_write_message(buffer);
+
+  thread_safe_log_with_id(std::format("Sending WRITE request of key: {0}, "
+                                      "value: {1} serialized as {2} over MPI",
+                                      buffer.key, print_block(buffer.data),
                                       print_block(message_buffer, total_size)));
 
-  MPI_Send(&message_buffer, total_size, MPI_UNSIGNED_CHAR,
-           resolve_maintainer(world_size, key), MESSAGE_TAG_BLOCK_WRITE_REQUEST,
-           MPI_COMM_WORLD);
+  MPI_Send(&message_buffer, total_size, MPI_UNSIGNED_CHAR, target_maintainer,
+           MESSAGE_TAG_BLOCK_WRITE_REQUEST, MPI_COMM_WORLD);
 }
 
 class UnifiedRepositoryFacade : public IRepository {

@@ -57,23 +57,20 @@ int main(int argc, const char **argv) {
   while (true) {
     int target_block = rng() % num_blocks;
     int operation = rng() % 2;
-    block b;
 
     // DEBUG
     if (operation) {
       block v = get_random_block();
       repo.write(target_block, std::move(v));
-      b = repo.read(target_block);
-      thread_safe_log_with_id("READ");
+      thread_safe_log_with_id(
+          std::format("Performing READ operation to block {0} at `main` level",
+                      target_block));
     } else {
-      b = repo.read(target_block);
-      thread_safe_log_with_id("WRITE");
+      thread_safe_log_with_id(
+          std::format("Performing WRITE operation to block {0} at `main` level",
+                      target_block));
     }
     // DEBUG
-
-    thread_safe_log_with_id(std::format(
-        "{0} block {1}: {2}", operation ? "Reading from" : "Writing to",
-        target_block, print_block(b, block_size)));
 
     std::this_thread::sleep_for(
         std::chrono::milliseconds(5000 / (target_block + 1)));

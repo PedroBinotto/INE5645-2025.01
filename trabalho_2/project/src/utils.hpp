@@ -36,12 +36,30 @@ inline std::string print_vec(const std::vector<T> &list,
   return msg;
 }
 
-/* Formats `types::block` to pretty-print friendly representation
+/* Formats `types::block` (of length BLOCK_SIZE) to pretty-print friendly
+ * representation
  */
-inline std::string print_block(const block &b, std::size_t size) {
+inline std::string print_block(const block &b) {
+  std::shared_ptr<GlobalRegistry> registry = GlobalRegistry::get_instance();
+  int block_size = registry->get(GlobalRegistryIndex::BlockSize);
   std::string msg;
-  for (std::size_t i = 0; i < size; ++i)
+
+  for (int i = 0; i < block_size; ++i) {
     msg += std::bitset<8>(b[i]).to_string() + " ";
+  }
+  return msg;
+}
+
+/* Formats byte arrays of variable size to pretty-print friendly representation
+ */
+inline std::string print_block(std::shared_ptr<uint8_t[]> b, int size) {
+  if (!b)
+    throw std::runtime_error("ERROR: null shared_ptr");
+
+  std::string msg;
+  for (int i = 0; i < size; ++i) {
+    msg += std::bitset<8>(b[i]).to_string() + " ";
+  }
   return msg;
 }
 
@@ -102,7 +120,8 @@ inline program_args capture_args(int argc, const char **argv,
   }
 }
 
-/* Validates parameters interpreted from `stdin` according to application logic.
+/* Validates parameters interpreted from `stdin` according to application
+ * logic.
  *
  * Exits with error status if invalid input is passed in.
  */
@@ -141,15 +160,15 @@ inline void validate_args(program_args &args, int world_size,
 
 /* Determines if process instance should produce verbose output.
  *
- * To maintain clarity and readability in the output, only process rank 0 should
- * display the major lifecycle admonitions.
+ * To maintain clarity and readability in the output, only process rank 0
+ * should display the major lifecycle admonitions.
  */
 inline bool is_verbose(int world_rank) {
   return world_rank == MASTER_INSTANCE_ID;
 }
 
-/* Resolves the `memory_map` representing the memory block distribution between
- * the program instances
+/* Resolves the `memory_map` representing the memory block distribution
+ * between the program instances
  */
 inline memory_map resolve_maintainers(int world_size, int num_blocks) {
   std::vector<std::vector<int>> assignment(world_size);
@@ -160,7 +179,11 @@ inline memory_map resolve_maintainers(int world_size, int num_blocks) {
   return assignment;
 }
 
-inline int resolve_maintainer(int world_size, int key) {
+/* Resolves the maintainer process' ID based on the desired block
+ */
+inline int resolve_maintainer(int key) {
+  std::shared_ptr<GlobalRegistry> registry = GlobalRegistry::get_instance();
+  int world_size = registry->get(GlobalRegistryIndex::WorldSize);
   return key % world_size;
 }
 
@@ -179,20 +202,24 @@ inline int get_total_write_message_buffer_size() {
  *
  * `[ int target_index {sizeof(int) bytes} ][ block data {BLOCK_SIZE bytes} ]`
  */
-inline std::unique_ptr<uint8_t[]>
-encode_write_message(std::unique_ptr<WriteMessageBuffer> message) {
-  int key = message->target_block;
-  block value = std::move(message->incoming_data);
-
+inline std::shared_ptr<uint8_t[]>
+encode_write_message(WriteMessageBuffer &message) {
   std::shared_ptr<GlobalRegistry> registry = GlobalRegistry::get_instance();
   int block_size = registry->get(GlobalRegistryIndex::BlockSize);
-
   int total_size = get_total_write_message_buffer_size();
-  std::unique_ptr<uint8_t[]> message_buffer =
-      std::make_unique<uint8_t[]>(total_size);
+  int key = message.key;
+  block value = message.data;
+
+  std::shared_ptr<uint8_t[]> message_buffer =
+      std::make_shared<uint8_t[]>(total_size);
 
   std::memcpy(message_buffer.get(), &key, sizeof(int));
   std::memcpy(message_buffer.get() + sizeof(int), value.get(), block_size);
+
+  thread_safe_log_with_id(std::format("Encoding write message from of key: "
+                                      "{0}, value: {1} as bytearray buffer {2}",
+                                      message.key, print_block(message.data),
+                                      print_block(message_buffer, total_size)));
 
   return message_buffer;
 }
@@ -202,28 +229,31 @@ encode_write_message(std::unique_ptr<WriteMessageBuffer> message) {
  * `[ int target_index {sizeof(int) bytes} ][ block data {BLOCK_SIZE bytes} ]`
  */
 inline WriteMessageBuffer
-decode_write_message(std::unique_ptr<uint8_t[]> message_buffer) {
+decode_write_message(std::shared_ptr<uint8_t[]> message_buffer) {
   std::shared_ptr<GlobalRegistry> registry = GlobalRegistry::get_instance();
   int block_size = registry->get(GlobalRegistryIndex::BlockSize);
-  int world_rank = registry->get(GlobalRegistryIndex::WorldRank);
+  int total_size = get_total_write_message_buffer_size();
 
-  thread_safe_log_with_id("Decoding write message...");
+  thread_safe_log_with_id(
+      std::format("Decoding write message from bytearray buffer: ",
+                  print_block(message_buffer, total_size)));
 
   int key;
-  std::unique_ptr<uint8_t[]> value = std::make_unique<uint8_t[]>(block_size);
+  block value = std::make_shared<uint8_t[]>(block_size);
 
   thread_safe_log_with_id("Allocated memory for buffer");
 
   std::memcpy(&key, message_buffer.get(), sizeof(int));
   std::memcpy(value.get(), message_buffer.get() + sizeof(int), block_size);
 
-  thread_safe_log_with_id("Copied memory to buffer");
+  thread_safe_log_with_id("Copied buffer to memory");
 
-  WriteMessageBuffer result = WriteMessageBuffer(key, std::move(value));
+  WriteMessageBuffer result = WriteMessageBuffer(key, value);
 
   thread_safe_log_with_id(std::format(
-      "Instantiated object: key {0}, value {1}", result.target_block,
-      print_block(result.incoming_data, block_size)));
+      "Constructed object: key {0}, value {1} from raw message buffer {2}",
+      result.key, print_block(result.data),
+      print_block(message_buffer, total_size)));
 
   return result;
 }
@@ -231,7 +261,7 @@ decode_write_message(std::unique_ptr<uint8_t[]> message_buffer) {
 inline block get_random_block() {
   std::shared_ptr<GlobalRegistry> registry = GlobalRegistry::get_instance();
   int block_size = registry->get(GlobalRegistryIndex::BlockSize);
-  std::unique_ptr<uint8_t[]> buffer = std::make_unique<uint8_t[]>(block_size);
+  block buffer = std::make_shared<uint8_t[]>(block_size);
 
   for (int i = 0; i < block_size; i++)
     buffer[i] = rand() % 256;
