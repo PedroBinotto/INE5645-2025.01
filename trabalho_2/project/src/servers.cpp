@@ -134,9 +134,10 @@ void handle_write(std::set<int> &local_blocks, UnifiedRepositoryFacade &repo,
                              MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
   thread_safe_log_with_id(
-      std::format("Successfully interpreted at `handler` level WRITE operation "
-                  "request with total buffer contents {0}",
-                  print_block(result_buffer, total_size)));
+      std::format("Successfully interpreted at `handler` "
+                  "level WRITE operation coming from process of ID {0}; "
+                  "request with total buffer contents {1}",
+                  source, print_block(result_buffer, total_size)));
 
   WriteMessageBuffer message_buffer = decode_write_message(result_buffer);
 
