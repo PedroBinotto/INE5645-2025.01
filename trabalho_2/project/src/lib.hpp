@@ -177,8 +177,8 @@ inline void RemoteRepository::write(int key, block value) {
                                       buffer.key, print_block(buffer.data),
                                       print_block(message_buffer, total_size)));
 
-  MPI_Send(&message_buffer, total_size, MPI_UNSIGNED_CHAR, target_maintainer,
-           MESSAGE_TAG_BLOCK_WRITE_REQUEST, MPI_COMM_WORLD);
+  MPI_Send(message_buffer.get(), total_size, MPI_UNSIGNED_CHAR,
+           target_maintainer, MESSAGE_TAG_BLOCK_WRITE_REQUEST, MPI_COMM_WORLD);
 }
 
 class UnifiedRepositoryFacade : public IRepository {
