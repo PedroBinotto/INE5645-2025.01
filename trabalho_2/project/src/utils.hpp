@@ -1,6 +1,7 @@
 #ifndef __UTILS_H__
 #define __UTILS_H__
 
+#include "constants.hpp"
 #include "logger.hpp"
 #include "store.hpp"
 #include "types.hpp"
@@ -10,19 +11,7 @@
 #include <iostream>
 #include <memory>
 #include <string>
-#include <utility>
 #include <vector>
-
-#define DEFAULT_BLOCK_SIZE 8
-#define DEFAULT_NUM_BLOCKS 4
-#define MAX_BLOCK_SIZE 32
-#define MAX_NUM_BLOCKS 32
-#define MASTER_INSTANCE_ID 0
-
-#define MESSAGE_TAG_BLOCK_READ_REQUEST 100
-#define MESSAGE_TAG_BLOCK_READ_RESPONSE 101
-#define MESSAGE_TAG_BLOCK_WRITE_REQUEST 102
-#define MESSAGE_TAG_BLOCK_UPDATE_NOTIFICATION 103
 
 /* Formats `std::vector<T>` to pretty-print friendly representation
  */
@@ -40,11 +29,8 @@ inline std::string print_vec(const std::vector<T> &list,
  * representation
  */
 inline std::string print_block(const block &b) {
-  std::shared_ptr<GlobalRegistry> registry = GlobalRegistry::get_instance();
-  int block_size = registry->get(GlobalRegistryIndex::BlockSize);
   std::string msg;
-
-  for (int i = 0; i < block_size; ++i) {
+  for (int i = 0; i < registry_get(GlobalRegistryIndex::BlockSize); ++i) {
     msg += std::bitset<8>(b[i]).to_string() + " ";
   }
   return msg;
@@ -53,9 +39,6 @@ inline std::string print_block(const block &b) {
 /* Formats byte arrays of variable size to pretty-print friendly representation
  */
 inline std::string print_block(std::shared_ptr<uint8_t[]> b, int size) {
-  if (!b)
-    throw std::runtime_error("ERROR: null shared_ptr");
-
   std::string msg;
   for (int i = 0; i < size; ++i) {
     msg += std::bitset<8>(b[i]).to_string() + " ";
@@ -182,9 +165,7 @@ inline memory_map resolve_maintainers(int world_size, int num_blocks) {
 /* Resolves the maintainer process' ID based on the desired block
  */
 inline int resolve_maintainer(int key) {
-  std::shared_ptr<GlobalRegistry> registry = GlobalRegistry::get_instance();
-  int world_size = registry->get(GlobalRegistryIndex::WorldSize);
-  return key % world_size;
+  return key % registry_get(GlobalRegistryIndex::WorldSize);
 }
 
 /* Calculates the total size (in bytes) of a WRITE message buffer, considering
@@ -193,9 +174,7 @@ inline int resolve_maintainer(int key) {
  * `[ int target_index {sizeof(int) bytes} ][ block data {BLOCK_SIZE bytes} ]`
  */
 inline int get_total_write_message_buffer_size() {
-  std::shared_ptr<GlobalRegistry> registry = GlobalRegistry::get_instance();
-  int block_size = registry->get(GlobalRegistryIndex::BlockSize);
-  return sizeof(int) + block_size;
+  return sizeof(int) + registry_get(GlobalRegistryIndex::BlockSize);
 }
 
 /* Encodes a WRITE message from `WriteMessageBuffer` to the buffer layout:
@@ -204,8 +183,6 @@ inline int get_total_write_message_buffer_size() {
  */
 inline std::shared_ptr<uint8_t[]>
 encode_write_message(WriteMessageBuffer &message) {
-  std::shared_ptr<GlobalRegistry> registry = GlobalRegistry::get_instance();
-  int block_size = registry->get(GlobalRegistryIndex::BlockSize);
   int total_size = get_total_write_message_buffer_size();
   int key = message.key;
   block value = message.data;
@@ -214,7 +191,8 @@ encode_write_message(WriteMessageBuffer &message) {
       std::make_shared<uint8_t[]>(total_size);
 
   std::memcpy(message_buffer.get(), &key, sizeof(int));
-  std::memcpy(message_buffer.get() + sizeof(int), value.get(), block_size);
+  std::memcpy(message_buffer.get() + sizeof(int), value.get(),
+              registry_get(GlobalRegistryIndex::BlockSize));
 
   thread_safe_log_with_id(std::format("Encoding write message from of key: "
                                       "{0}, value: {1} as bytearray buffer {2}",
@@ -230,8 +208,7 @@ encode_write_message(WriteMessageBuffer &message) {
  */
 inline WriteMessageBuffer
 decode_write_message(std::shared_ptr<uint8_t[]> message_buffer) {
-  std::shared_ptr<GlobalRegistry> registry = GlobalRegistry::get_instance();
-  int block_size = registry->get(GlobalRegistryIndex::BlockSize);
+  int block_size = registry_get(GlobalRegistryIndex::BlockSize);
   int total_size = get_total_write_message_buffer_size();
 
   thread_safe_log_with_id(
@@ -259,8 +236,7 @@ decode_write_message(std::shared_ptr<uint8_t[]> message_buffer) {
 }
 
 inline block get_random_block() {
-  std::shared_ptr<GlobalRegistry> registry = GlobalRegistry::get_instance();
-  int block_size = registry->get(GlobalRegistryIndex::BlockSize);
+  int block_size = registry_get(GlobalRegistryIndex::BlockSize);
   block buffer = std::make_shared<uint8_t[]>(block_size);
 
   for (int i = 0; i < block_size; i++)

@@ -46,13 +46,12 @@ inline std::string identify_log_string(std::string input, int world_rank) {
   return std::format("(@proc {0}) ", world_rank) + input;
 }
 
-/* Combines the behaviour of `thread_safe_log` and `identify_log_string` pulls
+/* Combines the behaviour of `thread_safe_log` and `identify_log_string`; pulls
  * `world_rank` from `GlobalRegistry`
  */
 inline void thread_safe_log_with_id(const std::string &msg) {
-  std::shared_ptr<GlobalRegistry> registry = GlobalRegistry::get_instance();
-  int world_rank = registry->get(GlobalRegistryIndex::WorldRank);
-  ThreadSafeLogger::get_instance()->log(identify_log_string(msg, world_rank));
+  thread_safe_log(
+      identify_log_string(msg, registry_get(GlobalRegistryIndex::WorldRank)));
 }
 
 #endif

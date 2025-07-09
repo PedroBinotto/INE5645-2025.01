@@ -37,11 +37,17 @@ using block = std::shared_ptr<std::uint8_t[]>;
  */
 typedef std::vector<std::vector<int>> memory_map;
 
+/* `stuct` representation of the message buffer for WRITE messages to be sent
+ * over MPI
+ */
 struct WriteMessageBuffer {
   int key;
   block data;
 };
 
+/* `stuct` representation of the message buffer for NOTIFICATION messages to be
+ * sent over MPI
+ */
 struct NotificationMessageBuffer : WriteMessageBuffer {
   int64_t timestamp;
 };

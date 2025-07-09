@@ -1,4 +1,5 @@
 #include "servers.hpp"
+#include "constants.hpp"
 #include "lib.hpp"
 #include "logger.hpp"
 #include "store.hpp"
@@ -24,12 +25,10 @@ void handle_notify(std::set<int> &local_blocks, UnifiedRepositoryFacade &repo,
                    int source);
 
 void read_listener(memory_map mem_map, UnifiedRepositoryFacade &repo) {
-  std::shared_ptr<GlobalRegistry> registry = GlobalRegistry::get_instance();
-  int world_rank = registry->get(GlobalRegistryIndex::WorldRank);
-
   thread_safe_log_with_id("Read thread started");
 
-  std::vector<int> local_blocks = mem_map.at(world_rank);
+  std::vector<int> local_blocks =
+      mem_map.at(registry_get(GlobalRegistryIndex::WorldRank));
   std::set<int> local_set = std::set(local_blocks.begin(), local_blocks.end());
 
   while (true) {
@@ -51,12 +50,10 @@ void read_listener(memory_map mem_map, UnifiedRepositoryFacade &repo) {
 }
 
 void write_listener(memory_map mem_map, UnifiedRepositoryFacade &repo) {
-  std::shared_ptr<GlobalRegistry> registry = GlobalRegistry::get_instance();
-  int world_rank = registry->get(GlobalRegistryIndex::WorldRank);
-
   thread_safe_log_with_id("Write thread started");
 
-  std::vector<int> local_blocks = mem_map.at(world_rank);
+  std::vector<int> local_blocks =
+      mem_map.at(registry_get(GlobalRegistryIndex::WorldRank));
   std::set<int> local_set = std::set(local_blocks.begin(), local_blocks.end());
 
   while (true) {
@@ -80,9 +77,6 @@ void write_listener(memory_map mem_map, UnifiedRepositoryFacade &repo) {
 
 void handle_read(std::set<int> &local_blocks, UnifiedRepositoryFacade &repo,
                  int source) {
-  std::shared_ptr<GlobalRegistry> registry = GlobalRegistry::get_instance();
-  int block_size = registry->get(GlobalRegistryIndex::BlockSize);
-
   thread_safe_log_with_id(
       "Processing READ operation request at `handler` level...");
 
@@ -107,8 +101,9 @@ void handle_read(std::set<int> &local_blocks, UnifiedRepositoryFacade &repo,
   try {
     block data = repo.read(requested_block);
     int send_result =
-        MPI_Send(data.get(), block_size, MPI_UNSIGNED_CHAR, source,
-                 MESSAGE_TAG_BLOCK_READ_RESPONSE, MPI_COMM_WORLD);
+        MPI_Send(data.get(), registry_get(GlobalRegistryIndex::BlockSize),
+                 MPI_UNSIGNED_CHAR, source, MESSAGE_TAG_BLOCK_READ_RESPONSE,
+                 MPI_COMM_WORLD);
 
     if (send_result != MPI_SUCCESS)
       throw std::runtime_error("MPI error while attempting to send response to "
@@ -163,7 +158,5 @@ void handle_write(std::set<int> &local_blocks, UnifiedRepositoryFacade &repo,
 }
 
 void notification_listener(memory_map mem_map, UnifiedRepositoryFacade &repo) {
-  std::shared_ptr<GlobalRegistry> registry = GlobalRegistry::get_instance();
-
   thread_safe_log_with_id("Notification thread started");
 }

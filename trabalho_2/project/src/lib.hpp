@@ -1,9 +1,9 @@
 #ifndef __LIB_H__
 #define __LIB_H__
 
+#include "constants.hpp"
 #include "logger.hpp"
 #include "mpi.h"
-#include "store.hpp"
 #include "types.hpp"
 #include "utils.hpp"
 #include <algorithm>

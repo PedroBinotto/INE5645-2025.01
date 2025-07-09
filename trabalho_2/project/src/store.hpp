@@ -40,4 +40,10 @@ private:
   std::map<GlobalRegistryIndex, int> data;
 };
 
+/* Wrapper around static method call to `GlobalRegistry::get`
+ */
+inline int registry_get(GlobalRegistryIndex key) {
+  return GlobalRegistry::get_instance()->get(key);
+}
+
 #endif
