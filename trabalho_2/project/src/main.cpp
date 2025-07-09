@@ -1,3 +1,4 @@
+#include "constants.hpp"
 #include "lib.hpp"
 #include "logger.hpp"
 #include "servers.hpp"
@@ -17,8 +18,11 @@
 server_threads start_helper_treads(memory_map mem_map,
                                    UnifiedRepositoryFacade &repo);
 
+void worker_proc(memory_map mem_map, std::string processor_name, int block_size,
+                 int num_blocks, int world_rank, int world_size);
+void broadcaster_proc(memory_map mem_map);
+
 int main(int argc, const char **argv) {
-  std::mt19937 rng{std::random_device{}()};
   int world_size, world_rank, name_len, thread_safety_provided;
   char processor_name[MPI_MAX_PROCESSOR_NAME];
 
@@ -27,12 +31,19 @@ int main(int argc, const char **argv) {
   MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
   MPI_Get_processor_name(processor_name, &name_len);
 
+  std::cout << "Process assigned world rank " << world_rank
+            << " successfully initialized MPI" << std::endl;
+
   if (thread_safety_provided < MPI_THREAD_MULTIPLE) {
-    throw std::runtime_error("multithread not supported");
+    throw std::runtime_error(
+        "Multithread operation not supported. Aborting...");
   }
 
   const bool verbose = is_verbose(world_rank);
   program_args params = capture_args(argc, argv, verbose);
+
+  std::cout << "Process assigned world rank " << world_rank
+            << " successfully parsed program args" << std::endl;
 
   int timestamp = std::stoi(std::get<0>(params));
   int block_size = std::get<1>(params);
@@ -40,13 +51,37 @@ int main(int argc, const char **argv) {
 
   validate_args(params, world_size, verbose);
 
+  std::cout << "Process assigned world rank " << world_rank
+            << " successfully validated program args" << std::endl;
+
   std::shared_ptr<GlobalRegistry> registry = GlobalRegistry::get_instance(
       world_rank, world_size, num_blocks, block_size, timestamp);
-  memory_map mem_map = resolve_maintainers(world_size, num_blocks);
+  memory_map mem_map = resolve_maintainers();
+
+  if (world_rank == get_broadcaster_proc_rank(world_size)) {
+    broadcaster_proc(mem_map);
+  } else {
+    worker_proc(mem_map, processor_name, block_size, num_blocks, world_rank,
+                world_size);
+  }
+
+  MPI_Finalize();
+  return 0;
+}
+
+/* Implements worker operations
+ */
+void worker_proc(memory_map mem_map, std::string processor_name, int block_size,
+                 int num_blocks, int world_rank, int world_size) {
+  thread_safe_log_with_id("Started as worker process");
+
+  std::mt19937 rng{std::random_device{}()};
   UnifiedRepositoryFacade repo =
       UnifiedRepositoryFacade(mem_map, block_size, world_rank);
 
   server_threads threads = start_helper_treads(mem_map, std::ref(repo));
+
+  thread_safe_log_with_id("Started helper threads");
 
   MPI_Barrier(MPI_COMM_WORLD);
 
@@ -72,12 +107,21 @@ int main(int argc, const char **argv) {
     }
     // DEBUG
 
-    std::this_thread::sleep_for(
-        std::chrono::milliseconds(5000 / (target_block + 1)));
+    std::this_thread::sleep_for(std::chrono::milliseconds(
+        OPERATION_SLEEP_INTERVAL_MILLIS / (target_block + 1)));
   }
 
   std::apply([](auto &&...thread) { ((thread.join()), ...); }, threads);
-  MPI_Finalize();
+}
+
+/* Implements broadcaster operations
+ */
+void broadcaster_proc(memory_map mem_map) {
+  thread_safe_log_with_id("Started as notification broadcaster");
+
+  std::thread t = std::thread(notification_producer, mem_map);
+  MPI_Barrier(MPI_COMM_WORLD);
+  t.join();
 }
 
 /* Starts all server threads and returns them `server_threads`:

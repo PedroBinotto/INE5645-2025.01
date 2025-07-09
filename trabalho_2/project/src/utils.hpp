@@ -107,6 +107,15 @@ inline program_args capture_args(int argc, const char **argv,
   }
 }
 
+/* Compute number of "worker" processes, that is, instances that act as memory
+ * block maintainers and perform read/write operations
+ */
+inline int get_num_worker_procs(int world_size) { return world_size - 1; }
+
+/* Get the world rank of the broadcaster instance
+ */
+inline int get_broadcaster_proc_rank(int world_size) { return world_size - 1; }
+
 /* Validates parameters interpreted from `stdin` according to application
  * logic.
  *
@@ -130,7 +139,7 @@ inline void validate_args(program_args &args, int world_size,
   if (block_size <= 0)
     fail("Tamanho de bloco de memória deve ser maior do que 0");
 
-  if (num_blocks < world_size)
+  if (num_blocks < get_num_worker_procs(world_size))
     fail("Número de blocos de memória alocados deve ser igual ou maior ao "
          "número de processos instanciados");
 
@@ -157,7 +166,11 @@ inline bool is_verbose(int world_rank) {
 /* Resolves the `memory_map` representing the memory block distribution
  * between the program instances
  */
-inline memory_map resolve_maintainers(int world_size, int num_blocks) {
+inline memory_map resolve_maintainers() {
+  int world_size =
+      get_num_worker_procs(registry_get(GlobalRegistryIndex::WorldSize));
+  int num_blocks = registry_get(GlobalRegistryIndex::NumBlocks);
+
   std::vector<std::vector<int>> assignment(world_size);
   for (int i = 0; i < num_blocks; ++i) {
     assignment[i % world_size].push_back(i);
@@ -169,7 +182,8 @@ inline memory_map resolve_maintainers(int world_size, int num_blocks) {
 /* Resolves the maintainer process' ID based on the desired block
  */
 inline int resolve_maintainer(int key) {
-  return key % registry_get(GlobalRegistryIndex::WorldSize);
+  return key %
+         get_num_worker_procs(registry_get(GlobalRegistryIndex::WorldSize));
 }
 
 /* Calculates the total size (in bytes) of a WRITE message buffer, considering

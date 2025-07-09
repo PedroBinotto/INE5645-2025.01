@@ -118,7 +118,7 @@ Adicionalmente, também é possível variar o número de processos instanciados 
 
 #### Número de processos
 
-Por padrão, o comando `make run` produzirá 4 instâncias paralelas do programa através do MPI. Este atributo de configuração é determinado pela constante `N_PROCS`, que está definida no topo do [Makefile](https://github.com/PedroBinotto/INE5645-2025.01/blob/750d370288b212725144c20224e400d81b9894b4/trabalho_2/project/Makefile) do projeto, em uma seção destinada à exploração por parte do usuário:
+Por padrão, o comando `make run` produzirá 5 instâncias paralelas do programa (4 instâncias _worker_ + 1 instância _broadcaster_) através do MPI. Este atributo de configuração é determinado pela constante `N_PROCS` (o número total é dado por `N_PROCS + 1`), que está definida no topo do [Makefile](https://github.com/PedroBinotto/INE5645-2025.01/blob/750d370288b212725144c20224e400d81b9894b4/trabalho_2/project/Makefile) do projeto, em uma seção destinada à exploração por parte do usuário:
 
 ```make
 # **********************************************************************************************************************

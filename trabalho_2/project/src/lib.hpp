@@ -57,7 +57,7 @@ inline block LocalRepository::read(int key) {
   std::shared_lock lock(mtx);
   auto it = blocks.find(key);
   if (it == blocks.end())
-    throw std::runtime_error("bad index");
+    throw std::runtime_error("Bad index");
 
   block copy = std::make_shared<std::uint8_t[]>(block_size);
   std::copy_n(it->second.get(), block_size, copy.get());
@@ -116,7 +116,7 @@ inline block RemoteRepository::read(int key) {
 
   auto it = blocks.find(key);
   if (it == blocks.end())
-    throw std::runtime_error("bad index");
+    throw std::runtime_error("Bad index");
 
   std::pair<int, block> &block_pair = blocks.at(it->first);
   int target = block_pair.first;

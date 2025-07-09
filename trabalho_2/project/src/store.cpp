@@ -18,7 +18,7 @@ int GlobalRegistry::get(GlobalRegistryIndex key) {
   try {
     return data.at(key);
   } catch (const std::exception &e) {
-    throw std::runtime_error("bad index");
+    throw std::runtime_error("Bad index");
   }
 }
 
@@ -34,7 +34,8 @@ GlobalRegistry::get_instance(int world_rank, int world_size, int num_blocks,
 
 std::shared_ptr<GlobalRegistry> GlobalRegistry::get_instance() {
   if (instance.get() == nullptr) {
-    throw std::runtime_error("global registry not initialized");
+    throw std::runtime_error("Attempted access to GlobalRegistry attribute "
+                             "with no initialized instance");
   }
   return instance;
 };

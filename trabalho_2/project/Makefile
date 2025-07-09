@@ -19,7 +19,7 @@ OBJDIR := obj
 BINDIR := bin
 LOGDIR := log
 TARGET := $(BINDIR)/$(APPNAME)
-# DEBUG_OPTIONS := xterm -e gdb catch throw -ex "break std::terminate" -ex "run" --args
+DEBUG_OPTIONS := xterm -e gdb catch throw -ex "break std::terminate" -ex "run" --args
 
 SRCS := $(wildcard $(SRCDIR)/*.cpp)
 OBJS := $(patsubst $(SRCDIR)/%.cpp,$(OBJDIR)/%.o,$(SRCS))
@@ -57,4 +57,4 @@ clean:
 ## run $(ARGS): run with command line args via `make run ARGS="<arg1, arg2 ...>"`
 .PHONY: run
 run: build
-	$(MPIR) -n $(N_PROCS) $(DEBUG_OPTIONS) $(TARGET) $(TIMESTAMP) $(ARGS)
+	$(MPIR) -n $(shell echo $$(($(N_PROCS) + 1))) $(DEBUG_OPTIONS) $(TARGET) $(TIMESTAMP) $(ARGS)

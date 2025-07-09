@@ -13,7 +13,6 @@
 #include <set>
 #include <thread>
 #include <unistd.h>
-#include <utility>
 
 void handle_read(std::set<int> &local_blocks, UnifiedRepositoryFacade &repo,
                  int source);
@@ -45,7 +44,8 @@ void read_listener(memory_map mem_map, UnifiedRepositoryFacade &repo) {
       handle_read(local_set, repo, status.MPI_SOURCE);
     }
 
-    std::this_thread::sleep_for(std::chrono::microseconds(1000000));
+    std::this_thread::sleep_for(
+        std::chrono::milliseconds(OPERATION_SLEEP_INTERVAL_MILLIS));
   }
 }
 
@@ -71,7 +71,26 @@ void write_listener(memory_map mem_map, UnifiedRepositoryFacade &repo) {
       handle_write(local_set, repo, status.MPI_SOURCE);
     }
 
-    std::this_thread::sleep_for(std::chrono::microseconds(1000000));
+    std::this_thread::sleep_for(
+        std::chrono::milliseconds(OPERATION_SLEEP_INTERVAL_MILLIS));
+  }
+}
+
+void notification_listener(memory_map mem_map, UnifiedRepositoryFacade &repo) {
+  thread_safe_log_with_id("Notification listener thread started");
+  while (true) {
+    thread_safe_log_with_id("Notification listener probing...");
+    std::this_thread::sleep_for(
+        std::chrono::milliseconds(OPERATION_SLEEP_INTERVAL_MILLIS));
+  }
+}
+
+void notification_producer(memory_map mem_map) {
+  thread_safe_log_with_id("Notification broadcaster server started");
+  while (true) {
+    thread_safe_log_with_id("Notification broadcaster probing...");
+    std::this_thread::sleep_for(
+        std::chrono::milliseconds(OPERATION_SLEEP_INTERVAL_MILLIS));
   }
 }
 
@@ -155,8 +174,4 @@ void handle_write(std::set<int> &local_blocks, UnifiedRepositoryFacade &repo,
         "Encountered unexpected exception at `handler` level while attempting "
         "to process WRITE operation request");
   }
-}
-
-void notification_listener(memory_map mem_map, UnifiedRepositoryFacade &repo) {
-  thread_safe_log_with_id("Notification thread started");
 }

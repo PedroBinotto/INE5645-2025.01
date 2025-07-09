@@ -26,7 +26,7 @@ void create_directory(const std::string &path) {
 
   if (mkdir(path.c_str(), 0777) != 0) {
     if (stat(path.c_str(), &info) != 0 || !(info.st_mode & S_IFDIR)) {
-      throw std::runtime_error("failed to create directory");
+      throw std::runtime_error("Failed to create directory");
     }
   }
 }
