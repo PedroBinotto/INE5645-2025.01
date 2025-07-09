@@ -50,7 +50,7 @@ inline LocalRepository::LocalRepository(memory_map mem_map, int block_size,
           std::format("LocalRepository[{0}]: {1}", i, print_block(b)));
     }
 
-    blocks.emplace(i, std::move(b));
+    blocks.emplace(i, b);
   }
 }
 
@@ -73,7 +73,7 @@ inline block LocalRepository::read(int key) {
 /* Write `value` to memory block identified by `key` */
 inline void LocalRepository::write(int key, block value) {
   std::unique_lock lock(mtx);
-  blocks.emplace(key, std::move(value));
+  blocks[key] = value;
 }
 
 /* Wrapper class for the remote memory-blocks - that is - the memory
@@ -113,7 +113,7 @@ inline RemoteRepository::RemoteRepository(memory_map mem_map, int block_size,
         }
       }
 
-      blocks.emplace(j, std::make_pair(i, std::move(b)));
+      blocks.emplace(j, std::make_pair(i, b));
     }
   }
 }
@@ -212,7 +212,7 @@ inline UnifiedRepositoryFacade::~UnifiedRepositoryFacade() = default;
 
 /* Write `value` to memory block identified by `key` */
 inline void UnifiedRepositoryFacade::write(int key, block value) {
-  access_map.at(key)->write(key, std::move(value));
+  access_map.at(key)->write(key, value);
 }
 
 /* Read contents from block indexed by `key`

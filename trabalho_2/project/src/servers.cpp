@@ -144,7 +144,7 @@ void handle_write(std::set<int> &local_blocks, UnifiedRepositoryFacade &repo,
     throw std::runtime_error("Targeted block for WRITE operation is not "
                              "maintained by this instance");
   try {
-    repo.write(message_buffer.key, std::move(message_buffer.data));
+    repo.write(message_buffer.key, message_buffer.data);
 
     // TODO: Notify for cache invalidation
     // int send_result = MPI_Bcast(result_buffer, total_size, MPI_UNSIGNED_CHAR,

@@ -61,7 +61,7 @@ int main(int argc, const char **argv) {
     // DEBUG
     if (operation) {
       block v = get_random_block();
-      repo.write(target_block, std::move(v));
+      repo.write(target_block, v);
       thread_safe_log_with_id(
           std::format("Performing READ operation to block {0} at `main` level",
                       target_block));
