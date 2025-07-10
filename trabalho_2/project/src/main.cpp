@@ -15,11 +15,18 @@
 #include <tuple>
 #include <unistd.h>
 
+/* Starts all server threads and returns them `server_threads`:
+ */
 server_threads start_helper_treads(memory_map mem_map,
                                    UnifiedRepositoryFacade &repo);
 
+/* Implements worker operations
+ */
 void worker_proc(memory_map mem_map, std::string processor_name, int block_size,
                  int num_blocks, int world_rank, int world_size);
+
+/* Implements broadcaster operations
+ */
 void broadcaster_proc(memory_map mem_map);
 
 int main(int argc, const char **argv) {
@@ -69,8 +76,6 @@ int main(int argc, const char **argv) {
   return 0;
 }
 
-/* Implements worker operations
- */
 void worker_proc(memory_map mem_map, std::string processor_name, int block_size,
                  int num_blocks, int world_rank, int world_size) {
   thread_safe_log_with_id("Started as worker process");
@@ -114,8 +119,6 @@ void worker_proc(memory_map mem_map, std::string processor_name, int block_size,
   std::apply([](auto &&...thread) { ((thread.join()), ...); }, threads);
 }
 
-/* Implements broadcaster operations
- */
 void broadcaster_proc(memory_map mem_map) {
   thread_safe_log_with_id("Started as notification broadcaster");
 
@@ -124,8 +127,6 @@ void broadcaster_proc(memory_map mem_map) {
   t.join();
 }
 
-/* Starts all server threads and returns them `server_threads`:
- */
 server_threads start_helper_treads(memory_map mem_map,
                                    UnifiedRepositoryFacade &repo) {
   return std::make_tuple(

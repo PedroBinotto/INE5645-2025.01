@@ -12,6 +12,7 @@
 #include <map>
 #include <memory>
 #include <mutex>
+#include <set>
 #include <shared_mutex>
 #include <utility>
 
@@ -79,11 +80,13 @@ public:
   RemoteRepository(memory_map mem_map, int block_size, int world_rank);
   block read(int key) override;
   void write(int key, block value) override;
+  void invalidate_cache(int key);
   ~RemoteRepository();
 
 private:
   memory_map mem_map;
   std::map<int, std::pair<int, block>> blocks;
+  std::shared_mutex mtx;
   int block_size;
   int world_rank;
 };
@@ -108,6 +111,7 @@ inline RemoteRepository::~RemoteRepository() = default;
 /* Read contents from block indexed by `key`
  */
 inline block RemoteRepository::read(int key) {
+  std::shared_lock lock(mtx);
   auto handle_error = [&](const int &result, const std::string &type) {
     if (result != MPI_SUCCESS)
       throw std::runtime_error(identify_log_string(
@@ -123,17 +127,33 @@ inline block RemoteRepository::read(int key) {
   block &blk = block_pair.second;
 
   if (!blk) {
+
+    thread_safe_log_with_id(
+        std::format("Cached data not available for block {0}. Performing "
+                    "remote access request...",
+                    target));
     block buffer = std::make_shared<uint8_t[]>(block_size);
 
     handle_error(MPI_Send(&key, 1, MPI_INT, target,
                           MESSAGE_TAG_BLOCK_READ_REQUEST, MPI_COMM_WORLD),
                  "MPI_Send");
+
+    thread_safe_log_with_id(std::format("Sent MPI request for block", target));
+
     handle_error(MPI_Recv(buffer.get(), block_size, MPI_UNSIGNED_CHAR, target,
                           MESSAGE_TAG_BLOCK_READ_RESPONSE, MPI_COMM_WORLD,
                           MPI_STATUS_IGNORE),
                  "MPI_Recv");
 
+    thread_safe_log_with_id(
+        std::format("Received MPI response for block {0} with content {1}",
+                    target, print_block(buffer)));
+
     blk = std::make_shared<uint8_t[]>(block_size);
+
+    thread_safe_log_with_id(
+        std::format("Saved local cache for block {0}", target));
+
     std::copy_n(buffer.get(), block_size, blk.get());
   }
 
@@ -145,6 +165,7 @@ inline block RemoteRepository::read(int key) {
 
 /* Write `value` to memory block identified by `key` */
 inline void RemoteRepository::write(int key, block value) {
+  std::unique_lock lock(mtx);
   int total_size = get_total_write_message_buffer_size();
   int target_maintainer = resolve_maintainer(key);
 
@@ -153,7 +174,7 @@ inline void RemoteRepository::write(int key, block value) {
                   "block {0} with value {1} on process ID {2}",
                   key, print_block(value), target_maintainer));
 
-  WriteMessageBuffer buffer = WriteMessageBuffer(key, value);
+  WriteMessageBuffer buffer(key, value);
 
   std::shared_ptr<uint8_t[]> message_buffer = encode_write_message(buffer);
 
@@ -166,21 +187,33 @@ inline void RemoteRepository::write(int key, block value) {
            target_maintainer, MESSAGE_TAG_BLOCK_WRITE_REQUEST, MPI_COMM_WORLD);
 }
 
+/* Clear locally cached data for block identified by `key` */
+inline void RemoteRepository::invalidate_cache(int key) {
+  std::unique_lock lock(mtx);
+  thread_safe_log_with_id(
+      std::format("Erasing local cache for block {0}", key));
+  std::pair<int, block> &block_pair = blocks.at(key);
+  block_pair.second = nullptr;
+}
+
 class UnifiedRepositoryFacade : public IRepository {
 public:
   UnifiedRepositoryFacade(memory_map mem_map, int block_size, int world_rank);
   block read(int key) override;
   void write(int key, block value) override;
+  void invalidate_cache(int key);
   ~UnifiedRepositoryFacade();
 
 private:
   std::map<int, std::shared_ptr<IRepository>> access_map;
+  memory_map mem_map;
 };
 
 inline UnifiedRepositoryFacade::UnifiedRepositoryFacade(memory_map mem_map,
                                                         int block_size,
                                                         int world_rank)
-    : access_map(std::map<int, std::shared_ptr<IRepository>>()) {
+    : access_map(std::map<int, std::shared_ptr<IRepository>>()),
+      mem_map(mem_map) {
   std::shared_ptr<IRepository> local =
       std::make_shared<LocalRepository>(mem_map, block_size, world_rank);
   std::shared_ptr<IRepository> remote =
@@ -204,6 +237,18 @@ inline void UnifiedRepositoryFacade::write(int key, block value) {
  */
 inline block UnifiedRepositoryFacade::read(int key) {
   return access_map.at(key)->read(key);
+}
+
+/* Clear locally cached data for block identified by `key` (remote only) */
+inline void UnifiedRepositoryFacade::invalidate_cache(int key) {
+  std::vector<int> local_blocks =
+      mem_map.at(registry_get(GlobalRegistryIndex::WorldRank));
+  std::set<int> local_set = std::set(local_blocks.begin(), local_blocks.end());
+
+  if (local_set.contains(key))
+    throw std::runtime_error("Bad index");
+
+  static_cast<RemoteRepository &>(*access_map.at(key)).invalidate_cache(key);
 }
 
 #endif
