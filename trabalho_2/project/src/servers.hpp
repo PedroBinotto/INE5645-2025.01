@@ -24,6 +24,6 @@ void notification_listener(memory_map mem_map, UnifiedRepositoryFacade &repo);
 /* Listener/producer loop that will broadcast incoming notifications
  * identified by `MESSAGE_TAG_BLOCK_UPDATE_NOTIFICATION`
  */
-void notification_producer(memory_map mem_map);
+void notification_broadcaster();
 
 #endif

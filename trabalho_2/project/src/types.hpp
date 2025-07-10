@@ -48,7 +48,8 @@ struct WriteMessageBuffer {
 /* `stuct` representation of the message buffer for NOTIFICATION messages to be
  * sent over MPI
  */
-struct NotificationMessageBuffer : WriteMessageBuffer {
+struct NotificationMessageBuffer {
+  int key;
   int64_t timestamp;
 };
 

@@ -4,6 +4,7 @@
 #include "constants.hpp"
 #include "logger.hpp"
 #include "mpi.h"
+#include "store.hpp"
 #include "types.hpp"
 #include "utils.hpp"
 #include <algorithm>
@@ -20,6 +21,7 @@ class IRepository {
 public:
   virtual block read(int key) = 0;
   virtual void write(int key, block value) = 0;
+  virtual std::map<int, block> dump() = 0;
 };
 
 /* Wrapper class for the process-local memory-blocks - that is - the memory
@@ -30,6 +32,7 @@ public:
   LocalRepository(memory_map mem_map, int block_size, int world_rank);
   block read(int key) override;
   void write(int key, block value) override;
+  std::map<int, block> dump() override;
   ~LocalRepository();
 
 private:
@@ -56,6 +59,8 @@ inline LocalRepository::~LocalRepository() = default;
  */
 inline block LocalRepository::read(int key) {
   std::shared_lock lock(mtx);
+  thread_safe_log_with_id(std::format(
+      "READ operation to block {0} called at local repository level", key));
   auto it = blocks.find(key);
   if (it == blocks.end())
     throw std::runtime_error("Bad index");
@@ -68,8 +73,49 @@ inline block LocalRepository::read(int key) {
 
 /* Write `value` to memory block identified by `key` */
 inline void LocalRepository::write(int key, block value) {
-  std::unique_lock lock(mtx);
-  blocks[key] = value;
+  {
+    std::unique_lock lock(mtx);
+    thread_safe_log_with_id(std::format(
+        "WRITE operation to block {0} called at local repository level", key));
+    blocks[key] = value;
+  }
+
+  long timestamp = std::chrono::duration_cast<std::chrono::seconds>(
+                       std::chrono::system_clock::now().time_since_epoch())
+                       .count();
+
+  thread_safe_log_with_id(std::format(
+      "Sending out update notification request for block {0}...", key));
+
+  NotificationMessageBuffer message(key, timestamp);
+  std::shared_ptr<uint8_t[]> data = encode_notification_message(message);
+
+  int send_result = MPI_Send(
+      data.get(), get_total_notification_message_buffer_size(),
+      MPI_UNSIGNED_CHAR,
+      get_broadcaster_proc_rank(registry_get(GlobalRegistryIndex::WorldSize)),
+      MESSAGE_TAG_BLOCK_UPDATE_NOTIFICATION, MPI_COMM_WORLD);
+
+  if (send_result != MPI_SUCCESS)
+    throw std::runtime_error("Encountered unexpected exception at `handler` "
+                             "level while attempting "
+                             "to perform NOTIFICATION request");
+}
+
+/* Export a static representation of the current stored state (for debug and
+ * logging purposes)
+ */
+inline std::map<int, block> LocalRepository::dump() {
+  std::shared_lock lock(mtx);
+  std::map<int, block> copy;
+  int block_size = registry_get(GlobalRegistryIndex::BlockSize);
+  for (const auto &[key, ptr] : blocks) {
+    block new_buf = std::make_shared<uint8_t[]>(block_size);
+    std::memcpy(new_buf.get(), ptr.get(), block_size);
+    copy[key] = new_buf;
+  }
+
+  return copy;
 }
 
 /* Wrapper class for the remote memory-blocks - that is - the memory
@@ -80,6 +126,7 @@ public:
   RemoteRepository(memory_map mem_map, int block_size, int world_rank);
   block read(int key) override;
   void write(int key, block value) override;
+  std::map<int, block> dump() override;
   void invalidate_cache(int key);
   ~RemoteRepository();
 
@@ -112,6 +159,8 @@ inline RemoteRepository::~RemoteRepository() = default;
  */
 inline block RemoteRepository::read(int key) {
   std::shared_lock lock(mtx);
+  thread_safe_log_with_id(std::format(
+      "READ operation to block {0} called at remote repository level", key));
   auto handle_error = [&](const int &result, const std::string &type) {
     if (result != MPI_SUCCESS)
       throw std::runtime_error(identify_log_string(
@@ -127,7 +176,6 @@ inline block RemoteRepository::read(int key) {
   block &blk = block_pair.second;
 
   if (!blk) {
-
     thread_safe_log_with_id(
         std::format("Cached data not available for block {0}. Performing "
                     "remote access request...",
@@ -138,7 +186,8 @@ inline block RemoteRepository::read(int key) {
                           MESSAGE_TAG_BLOCK_READ_REQUEST, MPI_COMM_WORLD),
                  "MPI_Send");
 
-    thread_safe_log_with_id(std::format("Sent MPI request for block", target));
+    thread_safe_log_with_id(
+        std::format("Sent MPI request for block {0}", target));
 
     handle_error(MPI_Recv(buffer.get(), block_size, MPI_UNSIGNED_CHAR, target,
                           MESSAGE_TAG_BLOCK_READ_RESPONSE, MPI_COMM_WORLD,
@@ -155,6 +204,10 @@ inline block RemoteRepository::read(int key) {
         std::format("Saved local cache for block {0}", target));
 
     std::copy_n(buffer.get(), block_size, blk.get());
+  } else {
+    thread_safe_log_with_id(
+        std::format("Using cached data for block {0}, contents: {1}", target,
+                    print_block(blk)));
   }
 
   block copy = std::make_shared<std::uint8_t[]>(block_size);
@@ -166,6 +219,8 @@ inline block RemoteRepository::read(int key) {
 /* Write `value` to memory block identified by `key` */
 inline void RemoteRepository::write(int key, block value) {
   std::unique_lock lock(mtx);
+  thread_safe_log_with_id(std::format(
+      "WRITE operation to block {0} called at remote repository level", key));
   int total_size = get_total_write_message_buffer_size();
   int target_maintainer = resolve_maintainer(key);
 
@@ -187,6 +242,26 @@ inline void RemoteRepository::write(int key, block value) {
            target_maintainer, MESSAGE_TAG_BLOCK_WRITE_REQUEST, MPI_COMM_WORLD);
 }
 
+/* Export a static representation of the current stored state (for debug and
+ * logging purposes)
+ */
+inline std::map<int, block> RemoteRepository::dump() {
+  std::shared_lock lock(mtx);
+  std::map<int, block> copy;
+  int block_size = registry_get(GlobalRegistryIndex::BlockSize);
+  for (const auto &[key, ptr] : blocks) {
+    if (ptr.second == nullptr) {
+      copy[key] = nullptr;
+    } else {
+      block new_buf = std::make_shared<uint8_t[]>(block_size);
+      std::memcpy(new_buf.get(), ptr.second.get(), block_size);
+      copy[key] = new_buf;
+    }
+  }
+
+  return copy;
+}
+
 /* Clear locally cached data for block identified by `key` */
 inline void RemoteRepository::invalidate_cache(int key) {
   std::unique_lock lock(mtx);
@@ -202,11 +277,14 @@ public:
   block read(int key) override;
   void write(int key, block value) override;
   void invalidate_cache(int key);
+  std::map<int, block> dump() override;
   ~UnifiedRepositoryFacade();
 
 private:
   std::map<int, std::shared_ptr<IRepository>> access_map;
   memory_map mem_map;
+  std::shared_ptr<IRepository> local;
+  std::shared_ptr<IRepository> remote;
 };
 
 inline UnifiedRepositoryFacade::UnifiedRepositoryFacade(memory_map mem_map,
@@ -214,10 +292,8 @@ inline UnifiedRepositoryFacade::UnifiedRepositoryFacade(memory_map mem_map,
                                                         int world_rank)
     : access_map(std::map<int, std::shared_ptr<IRepository>>()),
       mem_map(mem_map) {
-  std::shared_ptr<IRepository> local =
-      std::make_shared<LocalRepository>(mem_map, block_size, world_rank);
-  std::shared_ptr<IRepository> remote =
-      std::make_shared<RemoteRepository>(mem_map, block_size, world_rank);
+  local = std::make_shared<LocalRepository>(mem_map, block_size, world_rank);
+  remote = std::make_shared<RemoteRepository>(mem_map, block_size, world_rank);
 
   for (int i = 0; i < mem_map.size(); i++) {
     for (auto j : mem_map.at(i)) {
@@ -237,6 +313,17 @@ inline void UnifiedRepositoryFacade::write(int key, block value) {
  */
 inline block UnifiedRepositoryFacade::read(int key) {
   return access_map.at(key)->read(key);
+}
+
+/* Export a static representation of the current stored state (for debug and
+ * logging purposes)
+ */
+inline std::map<int, block> UnifiedRepositoryFacade::dump() {
+  std::map<int, block> l = local->dump();
+  std::map<int, block> r = remote->dump();
+  l.merge(r);
+
+  return l;
 }
 
 /* Clear locally cached data for block identified by `key` (remote only) */

@@ -14,6 +14,7 @@
 #include <thread>
 #include <tuple>
 #include <unistd.h>
+#include <utility>
 
 /* Starts all server threads and returns them `server_threads`:
  */
@@ -27,7 +28,11 @@ void worker_proc(memory_map mem_map, std::string processor_name, int block_size,
 
 /* Implements broadcaster operations
  */
-void broadcaster_proc(memory_map mem_map);
+void broadcaster_proc();
+
+/* Helper function to register state changes
+ */
+std::string dump_current_state(UnifiedRepositoryFacade &repo);
 
 int main(int argc, const char **argv) {
   int world_size, world_rank, name_len, thread_safety_provided;
@@ -66,7 +71,7 @@ int main(int argc, const char **argv) {
   memory_map mem_map = resolve_maintainers();
 
   if (world_rank == get_broadcaster_proc_rank(world_size)) {
-    broadcaster_proc(mem_map);
+    broadcaster_proc();
   } else {
     worker_proc(mem_map, processor_name, block_size, num_blocks, world_rank,
                 world_size);
@@ -106,6 +111,7 @@ void worker_proc(memory_map mem_map, std::string processor_name, int block_size,
           std::format("Performing READ operation to block {0} at `main` level",
                       target_block));
     } else {
+      repo.read(target_block);
       thread_safe_log_with_id(
           std::format("Performing WRITE operation to block {0} at `main` level",
                       target_block));
@@ -114,15 +120,19 @@ void worker_proc(memory_map mem_map, std::string processor_name, int block_size,
 
     std::this_thread::sleep_for(std::chrono::milliseconds(
         OPERATION_SLEEP_INTERVAL_MILLIS / (target_block + 1)));
+
+    thread_safe_log_with_id(
+        std::format("DEBUG: Current local allocated block configuration: {0}",
+                    dump_current_state(repo)));
   }
 
   std::apply([](auto &&...thread) { ((thread.join()), ...); }, threads);
 }
 
-void broadcaster_proc(memory_map mem_map) {
+void broadcaster_proc() {
   thread_safe_log_with_id("Started as notification broadcaster");
 
-  std::thread t = std::thread(notification_producer, mem_map);
+  std::thread t = std::thread(notification_broadcaster);
   MPI_Barrier(MPI_COMM_WORLD);
   t.join();
 }
@@ -133,4 +143,21 @@ server_threads start_helper_treads(memory_map mem_map,
       std::thread(read_listener, mem_map, std::ref(repo)),
       std::thread(write_listener, mem_map, std::ref(repo)),
       std::thread(notification_listener, mem_map, std::ref(repo)));
+}
+
+std::string dump_current_state(UnifiedRepositoryFacade &repo) {
+  int num_blocks = registry_get(GlobalRegistryIndex::NumBlocks);
+  std::string s;
+  std::map<int, block> state = repo.dump();
+
+  auto transform = [&](const std::pair<int, block> &p) {
+    std::string blk = p.second ? print_block(p.second) : "nullptr";
+    return std::format("{0}	{1}\n", p.first, blk);
+  };
+
+  for (int i = 0; i < num_blocks; i++) {
+    s += transform(std::make_pair(i, state.at(i)));
+  }
+
+  return s;
 }

@@ -109,7 +109,7 @@ void notification_listener(memory_map mem_map, UnifiedRepositoryFacade &repo) {
   }
 }
 
-void notification_producer(memory_map mem_map) {
+void notification_broadcaster() {
   thread_safe_log_with_id("Notification broadcaster server started");
 
   while (true) {
@@ -208,28 +208,8 @@ void handle_write(std::set<int> &local_blocks, UnifiedRepositoryFacade &repo,
                              "maintained by this instance");
   try {
     repo.write(message_buffer.key, message_buffer.data);
-    long timestamp = std::chrono::duration_cast<std::chrono::seconds>(
-                         std::chrono::system_clock::now().time_since_epoch())
-                         .count();
-
-    thread_safe_log_with_id(std::format(
-        "Completed WRITE request from process of ID {0} successfully. Sending "
-        "out update notification request for block {1}...",
-        source, message_buffer.key));
-
-    NotificationMessageBuffer message(message_buffer, timestamp);
-    std::shared_ptr<uint8_t[]> data = encode_notification_message(message);
-
-    int send_result = MPI_Send(
-        data.get(), get_total_notification_message_buffer_size(),
-        MPI_UNSIGNED_CHAR,
-        get_broadcaster_proc_rank(registry_get(GlobalRegistryIndex::WorldSize)),
-        MESSAGE_TAG_BLOCK_UPDATE_NOTIFICATION, MPI_COMM_WORLD);
-
-    if (send_result != MPI_SUCCESS)
-      throw std::runtime_error("Encountered unexpected exception at `handler` "
-                               "level while attempting "
-                               "to perform NOTIFICATION request");
+    thread_safe_log_with_id(
+        "Completed WRITE request from process of ID {0} successfully.");
   } catch (const std::exception &e) {
     throw std::runtime_error(
         "Encountered unexpected exception at `handler` level while attempting "

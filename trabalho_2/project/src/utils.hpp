@@ -200,12 +200,11 @@ inline int get_total_write_message_buffer_size() {
 /* Calculates the total size (in bytes) of a NOTIFICATION message buffer,
  * considering the following buffer layout:
  *
- * `[ int target_index {sizeof(int) bytes} ][ block data {BLOCK_SIZE bytes} ][ long timestamp {sizeof(long) bytes} ]`
+ * `[ int target_index {sizeof(int) bytes} ][ long timestamp {sizeof(long) bytes} ]`
  */
 inline int get_total_notification_message_buffer_size() {
   // clang-format on
-  return sizeof(int) + registry_get(GlobalRegistryIndex::BlockSize) +
-         sizeof(long);
+  return sizeof(int) + sizeof(long);
 }
 
 /* Encodes a WRITE message from `WriteMessageBuffer` to the buffer layout:
@@ -243,7 +242,7 @@ decode_write_message(std::shared_ptr<uint8_t[]> message_buffer) {
   int total_size = get_total_write_message_buffer_size();
 
   thread_safe_log_with_id(
-      std::format("Decoding write message from bytearray buffer: ",
+      std::format("Decoding write message from bytearray buffer: {0}",
                   print_block(message_buffer, total_size)));
 
   int key;
@@ -271,30 +270,25 @@ decode_write_message(std::shared_ptr<uint8_t[]> message_buffer) {
 /* Encodes a NOTIFICATION message from `NotificationMessageBuffer` to the
  * buffer layout:
  *
- * `[ int target_index {sizeof(int) bytes} ][ block data {BLOCK_SIZE bytes} ][ long timestamp {sizeof(long) bytes} ]`
+ * `[ int target_index {sizeof(int) bytes} ][ long timestamp {sizeof(long) bytes} ]`
  */
 inline std::shared_ptr<uint8_t[]>
 encode_notification_message(NotificationMessageBuffer &message) {
   // clang-format on
   int total_size = get_total_notification_message_buffer_size();
-  int block_size = registry_get(GlobalRegistryIndex::BlockSize);
   int key = message.key;
-  block value = message.data;
   long timestamp = message.timestamp;
 
   std::shared_ptr<uint8_t[]> message_buffer =
       std::make_shared<uint8_t[]>(total_size);
 
   std::memcpy(message_buffer.get(), &key, sizeof(int));
-  std::memcpy(message_buffer.get() + sizeof(int), value.get(), block_size);
-  std::memcpy(message_buffer.get() + sizeof(int) + block_size, &timestamp,
-              sizeof(long));
+  std::memcpy(message_buffer.get() + sizeof(int), &timestamp, sizeof(long));
 
-  thread_safe_log_with_id(
-      std::format("Encoding notification message from of key: "
-                  "{0}, value: {1}, timestamp: {2} as bytearray buffer {3}",
-                  message.key, print_block(message.data), timestamp,
-                  print_block(message_buffer, total_size)));
+  thread_safe_log_with_id(std::format(
+      "Encoding notification message from of key: "
+      "{0}, timestamp: {1} as bytearray buffer {2}",
+      message.key, timestamp, print_block(message_buffer, total_size)));
 
   return message_buffer;
 }
@@ -303,38 +297,33 @@ encode_notification_message(NotificationMessageBuffer &message) {
 
 /* Decodes a NOTIFICATION message to `NotificationMessageBuffer`, from  the buffer layout:
  *
- * `[ int target_index {sizeof(int) bytes} ][ block data {BLOCK_SIZE bytes} ][ long timestamp {sizeof(long) bytes} ]`
+ * `[ int target_index {sizeof(int) bytes} ][ long timestamp {sizeof(long) bytes} ]`
  */
 inline NotificationMessageBuffer
 decode_notificaton_message(std::shared_ptr<uint8_t[]> message_buffer) {
   // clang-format on
-  int block_size = registry_get(GlobalRegistryIndex::BlockSize);
   int total_size = get_total_notification_message_buffer_size();
 
   thread_safe_log_with_id(
-      std::format("Decoding notification message from bytearray buffer: ",
+      std::format("Decoding notification message from bytearray buffer: {0}",
                   print_block(message_buffer, total_size)));
 
   int key;
-  block value = std::make_shared<uint8_t[]>(block_size);
   long timestamp;
 
   thread_safe_log_with_id("Allocated memory for buffer");
 
   std::memcpy(&key, message_buffer.get(), sizeof(int));
-  std::memcpy(value.get(), message_buffer.get() + sizeof(int), block_size);
-  std::memcpy(&timestamp, message_buffer.get() + sizeof(int) + block_size,
-              sizeof(long));
+  std::memcpy(&timestamp, message_buffer.get() + sizeof(int), sizeof(long));
 
   thread_safe_log_with_id("Copied buffer to memory");
 
-  NotificationMessageBuffer result(WriteMessageBuffer(key, value), timestamp);
+  NotificationMessageBuffer result(key, timestamp);
 
-  thread_safe_log_with_id(
-      std::format("Constructed object: key {0}, value {1}, timestamp {2} from "
-                  "raw message buffer {3}",
-                  result.key, print_block(result.data), timestamp,
-                  print_block(message_buffer, total_size)));
+  thread_safe_log_with_id(std::format(
+      "Constructed object: key {0}, timestamp {1} from "
+      "raw message buffer {2}",
+      result.key, timestamp, print_block(message_buffer, total_size)));
 
   return result;
 }
