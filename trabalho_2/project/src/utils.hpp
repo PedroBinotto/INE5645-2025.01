@@ -10,6 +10,7 @@
 #include <format>
 #include <iostream>
 #include <memory>
+#include <set>
 #include <string>
 #include <vector>
 
@@ -54,7 +55,7 @@ inline std::string print_block(std::shared_ptr<uint8_t[]> b, int size) {
 inline program_args capture_args(int argc, const char **argv,
                                  bool verbose = false) {
   switch (argc) {
-  case 2:
+  case 3:
     if (verbose) {
       std::cout << "\033[33m[BLOCK_SIZE, NUM_BLOCKS] não informados; "
                    "usando parâmetros padrão: \033[0m"
@@ -63,14 +64,15 @@ inline program_args capture_args(int argc, const char **argv,
                 << std::endl;
     }
 
-    return program_args(argv[1], DEFAULT_BLOCK_SIZE, DEFAULT_NUM_BLOCKS);
+    return program_args(std::stoi(argv[1]), argv[2], DEFAULT_BLOCK_SIZE,
+                        DEFAULT_NUM_BLOCKS);
     break;
-  case 3:
+  case 4:
     if (verbose) {
       std::cout << "\033[33mUsando parâmetros [BLOCK_SIZE] "
                    "informados: \033[0m"
                 << std::endl
-                << print_vec(std::vector<std::string>(argv + 2, argv + argc))
+                << print_vec(std::vector<std::string>(argv + 3, argv + argc))
                 << std::endl;
 
       std::cout << "\033[33m[NUM_BLOCKS] não informados; usando "
@@ -79,23 +81,25 @@ inline program_args capture_args(int argc, const char **argv,
                 << print_vec<int>({DEFAULT_NUM_BLOCKS}) << std::endl;
     }
 
-    return program_args(argv[1], std::stoi(argv[2]), DEFAULT_NUM_BLOCKS);
+    return program_args(std::stoi(argv[1]), argv[2], std::stoi(argv[3]),
+                        DEFAULT_NUM_BLOCKS);
     break;
-  case 4:
+  case 5:
     if (verbose) {
       std::cout << "\033[33mUsando parâmetros [BLOCK_SIZE, NUM_BLOCKS] "
                    "informados: \033[0m"
                 << std::endl
-                << print_vec(std::vector<std::string>(argv + 2, argv + argc))
+                << print_vec(std::vector<std::string>(argv + 3, argv + argc))
                 << std::endl;
     }
 
-    return program_args(argv[1], std::stoi(argv[2]), std::stoi(argv[3]));
+    return program_args(std::stoi(argv[1]), argv[2], std::stoi(argv[3]),
+                        std::stoi(argv[4]));
     break;
   default:
     if (verbose) {
       std::cerr << "\033[31mEntrada inválida: \033[0m" << std::endl
-                << print_vec(std::vector<std::string>(argv + 2, argv + argc))
+                << print_vec(std::vector<std::string>(argv + 3, argv + argc))
                 << std::endl;
       std::cout << "\033[31mDeve ser " << argv[0] << " <BLOCK_SIZE>\033[0m ou"
                 << std::endl;
@@ -130,8 +134,16 @@ inline void validate_args(program_args &args, int world_size,
     std::exit(EXIT_FAILURE);
   };
 
-  int block_size = std::get<1>(args);
-  int num_blocks = std::get<2>(args);
+  int log_level = std::get<0>(args);
+  int block_size = std::get<2>(args);
+  int num_blocks = std::get<3>(args);
+  std::set<int> levels = {LOG_LEVEL_SPARSE, LOG_LEVEL_REGULAR,
+                          LOG_LEVEL_VERBOSE};
+
+  if (!levels.contains(log_level))
+    fail(std::format(
+        "`LOG_LEVEL` deve ser um de [0, 1, 2], mas foi informado o valor {0}",
+        log_level));
 
   if (num_blocks <= 0)
     fail("Número de blocos de memória alocados deve ser maior do que 0");

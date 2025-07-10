@@ -57,9 +57,10 @@ int main(int argc, const char **argv) {
   std::cout << "Process assigned world rank " << world_rank
             << " successfully parsed program args" << std::endl;
 
-  int timestamp = std::stoi(std::get<0>(params));
-  int block_size = std::get<1>(params);
-  int num_blocks = std::get<2>(params);
+  int log_level = std::get<0>(params);
+  int timestamp = std::stoi(std::get<1>(params));
+  int block_size = std::get<2>(params);
+  int num_blocks = std::get<3>(params);
 
   validate_args(params, world_size, verbose);
 
@@ -67,7 +68,7 @@ int main(int argc, const char **argv) {
             << " successfully validated program args" << std::endl;
 
   std::shared_ptr<GlobalRegistry> registry = GlobalRegistry::get_instance(
-      world_rank, world_size, num_blocks, block_size, timestamp);
+      world_rank, world_size, num_blocks, block_size, timestamp, log_level);
   memory_map mem_map = resolve_maintainers();
 
   if (world_rank == get_broadcaster_proc_rank(world_size)) {
@@ -121,9 +122,10 @@ void worker_proc(memory_map mem_map, std::string processor_name, int block_size,
     std::this_thread::sleep_for(std::chrono::milliseconds(
         OPERATION_SLEEP_INTERVAL_MILLIS / (target_block + 1)));
 
-    thread_safe_log_with_id(
-        std::format("DEBUG: Current local allocated block configuration: {0}",
-                    dump_current_state(repo)));
+    if (registry_get(GlobalRegistryIndex::LogLevel) > 1)
+      thread_safe_log_with_id(
+          std::format("DEBUG: Current local allocated block configuration: {0}",
+                      dump_current_state(repo)));
   }
 
   std::apply([](auto &&...thread) { ((thread.join()), ...); }, threads);

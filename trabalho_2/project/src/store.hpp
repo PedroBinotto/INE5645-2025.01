@@ -9,7 +9,8 @@ enum class GlobalRegistryIndex {
   WorldRank,
   NumBlocks,
   BlockSize,
-  Timestamp
+  Timestamp,
+  LogLevel,
 };
 
 /* Provides easy (read-only) static access to an instance-scoped immutable set
@@ -18,7 +19,7 @@ enum class GlobalRegistryIndex {
 class GlobalRegistry {
 protected:
   GlobalRegistry(int world_rank, int world_size, int num_blocks, int block_size,
-                 int timestamp);
+                 int timestamp, int log_level);
 
 public:
   /* Read entry from the registry
@@ -29,7 +30,7 @@ public:
    */
   static std::shared_ptr<GlobalRegistry>
   get_instance(int world_rank, int world_size, int num_blocks, int block_size,
-               int timestamp);
+               int timestamp, int log_level);
 
   /* Provides access to the global registry instance
    */

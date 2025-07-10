@@ -16,6 +16,9 @@ std::shared_ptr<ThreadSafeLogger> ThreadSafeLogger::instance{nullptr};
 std::mutex ThreadSafeLogger::mtx;
 
 void ThreadSafeLogger::log(std::string msg) {
+  if (registry_get(GlobalRegistryIndex::LogLevel) <= 0)
+    return;
+
   std::lock_guard<std::mutex> lock(mtx);
   std::string log_entry = std::format("[{0}] {1}", currentUnixTime(), msg);
   std::cout << log_entry << std::endl;

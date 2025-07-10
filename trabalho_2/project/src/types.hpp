@@ -10,11 +10,12 @@
 /* Represents the input model for the program as a `std::tuple<int, int>`,
  * wherein:
  *
- * `std::get<0>(program_args)` returns `TIMESTAMP`
- * `std::get<1>(program_args)` returns `BLOCK_SIZE`
- * `std::get<2>(program_args)` returns `NUM_BLOCKS`
+ * `std::get<0>(program_args)` returns `LOG_LEVEL`
+ * `std::get<1>(program_args)` returns `TIMESTAMP`
+ * `std::get<2>(program_args)` returns `BLOCK_SIZE`
+ * `std::get<3>(program_args)` returns `NUM_BLOCKS`
  */
-typedef std::tuple<std::string, int, int> program_args;
+typedef std::tuple<int, std::string, int, int> program_args;
 
 /* Represents the server/listener thread model as a tuple, wherein:
  *
