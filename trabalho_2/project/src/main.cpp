@@ -6,6 +6,7 @@
 #include "types.hpp"
 #include "utils.hpp"
 #include <format>
+#include <memory>
 #include <mpi.h>
 #include <random>
 #include <stdexcept>
@@ -15,6 +16,40 @@
 #include <tuple>
 #include <unistd.h>
 #include <utility>
+
+// *****************************************************************************
+// FUNÇÕES ESPECIFICADAS NO ENUNCIADO DO TRABALHO
+
+/**
+ * Primitiva de escrita
+ *
+ * @param posicao Indica a posição inicial da memória de onde se pretende
+ * escrever algum conteúdo;
+ * @param buffer Indica a posição inicial da memória de onde se pretende
+ * escrever algum conteúdo;
+ * @param tamanho Indica o número em bytes a serem escritos na operação (ou
+ * seja, o número de bytes em buffer, a partir da posição `posicao`);
+ * @return valor de retorno inteiro (`int`) deve representar códigos de erro, na
+ * impossibilidade de execução da operação.
+ */
+int escreve(int posicao, std::shared_ptr<uint8_t[]> buffer, int tamanho);
+
+/**
+ * Primitiva de leitura
+ *
+ * @param posicao Indica a posição inicial da memória de onde se pretende ler
+ * algum conteúdo;
+ * @param buffer Indica o endereço da variável que receberá o conteúdo da
+ * leitura;
+ * @param tamanho Indica o número em bytes a serem lidos na operação (ou seja, o
+ * número de bytes a partir da posição `posicao`);
+ * @return valor de retorno inteiro (`int`) deve representar códigos de erro, na
+ * impossibilidade de execução da operação.
+ */
+int le(int posicao, std::shared_ptr<uint8_t[]> buffer, int tamanho);
+
+// FUNÇÕES ESPECIFICADAS NO ENUNCIADO DO TRABALHO
+// *****************************************************************************
 
 /* Starts all server threads and returns them `server_threads`:
  */
@@ -33,6 +68,8 @@ void broadcaster_proc();
 /* Helper function to register state changes
  */
 std::string dump_current_state(UnifiedRepositoryFacade &repo);
+
+std::optional<UnifiedRepositoryFacade> repository;
 
 int main(int argc, const char **argv) {
   int world_size, world_rank, name_len, thread_safety_provided;
@@ -87,10 +124,10 @@ void worker_proc(memory_map mem_map, std::string processor_name, int block_size,
   thread_safe_log_with_id("Started as worker process");
 
   std::mt19937 rng{std::random_device{}()};
-  UnifiedRepositoryFacade repo =
-      UnifiedRepositoryFacade(mem_map, block_size, world_rank);
+  repository = UnifiedRepositoryFacade(mem_map, block_size, world_rank);
 
-  server_threads threads = start_helper_treads(mem_map, std::ref(repo));
+  server_threads threads =
+      start_helper_treads(mem_map, std::ref(repository.value()));
 
   thread_safe_log_with_id("Started helper threads");
 
@@ -102,30 +139,22 @@ void worker_proc(memory_map mem_map, std::string processor_name, int block_size,
 
   while (true) {
     int target_block = rng() % num_blocks;
-    int operation = rng() % 2;
 
-    // DEBUG
-    if (operation) {
-      block v = get_random_block();
-      repo.write(target_block, v);
-      thread_safe_log_with_id(
-          std::format("Performing READ operation to block {0} at `main` level",
-                      target_block));
+    if (rng() % 2) {
+      escreve(target_block, get_random_block(), 1);
     } else {
-      repo.read(target_block);
-      thread_safe_log_with_id(
-          std::format("Performing WRITE operation to block {0} at `main` level",
-                      target_block));
+      std::shared_ptr<uint8_t[]> result_buffer =
+          std::make_shared<uint8_t[]>(block_size);
+      le(target_block, result_buffer, 1);
     }
-    // DEBUG
 
-    std::this_thread::sleep_for(std::chrono::milliseconds(
-        OPERATION_SLEEP_INTERVAL_MILLIS / (target_block + 1)));
+    std::this_thread::sleep_for(
+        std::chrono::milliseconds(OPERATION_SLEEP_INTERVAL_MILLIS));
 
     if (registry_get(GlobalRegistryIndex::LogLevel) > 1)
       thread_safe_log_with_id(
           std::format("DEBUG: Current local allocated block configuration: {0}",
-                      dump_current_state(repo)));
+                      dump_current_state(repository.value())));
   }
 
   std::apply([](auto &&...thread) { ((thread.join()), ...); }, threads);
@@ -162,4 +191,17 @@ std::string dump_current_state(UnifiedRepositoryFacade &repo) {
   }
 
   return s;
+}
+
+int escreve(int posicao, std::shared_ptr<uint8_t[]> buffer, int tamanho) {
+  repository->write(posicao, buffer);
+  thread_safe_log_with_id(std::format(
+      "Performing READ operation to block {0} at `main` level", posicao));
+  return 0;
+}
+int le(int posicao, std::shared_ptr<uint8_t[]> buffer, int tamanho) {
+  repository->read(posicao);
+  thread_safe_log_with_id(std::format(
+      "Performing WRITE operation to block {0} at `main` level ", posicao));
+  return 0;
 }

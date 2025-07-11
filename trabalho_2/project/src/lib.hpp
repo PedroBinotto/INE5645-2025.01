@@ -278,7 +278,7 @@ public:
   void write(int key, block value) override;
   void invalidate_cache(int key);
   std::map<int, block> dump() override;
-  ~UnifiedRepositoryFacade();
+  virtual ~UnifiedRepositoryFacade() = default;
 
 private:
   std::map<int, std::shared_ptr<IRepository>> access_map;
@@ -301,8 +301,6 @@ inline UnifiedRepositoryFacade::UnifiedRepositoryFacade(memory_map mem_map,
     }
   }
 };
-
-inline UnifiedRepositoryFacade::~UnifiedRepositoryFacade() = default;
 
 /* Write `value` to memory block identified by `key` */
 inline void UnifiedRepositoryFacade::write(int key, block value) {
