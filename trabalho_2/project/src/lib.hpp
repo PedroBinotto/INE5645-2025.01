@@ -24,7 +24,8 @@ public:
   virtual std::map<int, block> dump() = 0;
 };
 
-/* Wrapper class for the process-local memory-blocks - that is - the memory
+/**
+ * Wrapper class for the process-local memory-blocks - that is - the memory
  * blocks that are maintained by the local process.
  */
 class LocalRepository : public IRepository {
@@ -55,7 +56,8 @@ inline LocalRepository::LocalRepository(memory_map mem_map, int block_size,
 
 inline LocalRepository::~LocalRepository() = default;
 
-/* Read contents from block indexed by `key`
+/**
+ * Read contents from block indexed by `key`
  */
 inline block LocalRepository::read(int key) {
   std::shared_lock lock(mtx);
@@ -71,7 +73,9 @@ inline block LocalRepository::read(int key) {
   return copy;
 }
 
-/* Write `value` to memory block identified by `key` */
+/**
+ * Write `value` to memory block identified by `key`
+ */
 inline void LocalRepository::write(int key, block value) {
   {
     std::unique_lock lock(mtx);
@@ -102,7 +106,8 @@ inline void LocalRepository::write(int key, block value) {
                              "to perform NOTIFICATION request");
 }
 
-/* Export a static representation of the current stored state (for debug and
+/**
+ * Export a static representation of the current stored state (for debug and
  * logging purposes)
  */
 inline std::map<int, block> LocalRepository::dump() {
@@ -118,7 +123,8 @@ inline std::map<int, block> LocalRepository::dump() {
   return copy;
 }
 
-/* Wrapper class for the remote memory-blocks - that is - the memory
+/**
+ * Wrapper class for the remote memory-blocks - that is - the memory
  * blocks that are maintained by the other processes.
  */
 class RemoteRepository : public IRepository {
@@ -155,7 +161,8 @@ inline RemoteRepository::RemoteRepository(memory_map mem_map, int block_size,
 
 inline RemoteRepository::~RemoteRepository() = default;
 
-/* Read contents from block indexed by `key`
+/**
+ * Read contents from block indexed by `key`
  */
 inline block RemoteRepository::read(int key) {
   std::shared_lock lock(mtx);
@@ -216,7 +223,9 @@ inline block RemoteRepository::read(int key) {
   return copy;
 }
 
-/* Write `value` to memory block identified by `key` */
+/**
+ * Write `value` to memory block identified by `key`
+ */
 inline void RemoteRepository::write(int key, block value) {
   std::unique_lock lock(mtx);
   thread_safe_log_with_id(std::format(
@@ -242,7 +251,8 @@ inline void RemoteRepository::write(int key, block value) {
            target_maintainer, MESSAGE_TAG_BLOCK_WRITE_REQUEST, MPI_COMM_WORLD);
 }
 
-/* Export a static representation of the current stored state (for debug and
+/**
+ * Export a static representation of the current stored state (for debug and
  * logging purposes)
  */
 inline std::map<int, block> RemoteRepository::dump() {
@@ -262,7 +272,9 @@ inline std::map<int, block> RemoteRepository::dump() {
   return copy;
 }
 
-/* Clear locally cached data for block identified by `key` */
+/**
+ * Clear locally cached data for block identified by `key`
+ */
 inline void RemoteRepository::invalidate_cache(int key) {
   std::unique_lock lock(mtx);
   thread_safe_log_with_id(
@@ -302,18 +314,22 @@ inline UnifiedRepositoryFacade::UnifiedRepositoryFacade(memory_map mem_map,
   }
 };
 
-/* Write `value` to memory block identified by `key` */
+/**
+ * Write `value` to memory block identified by `key`
+ */
 inline void UnifiedRepositoryFacade::write(int key, block value) {
   access_map.at(key)->write(key, value);
 }
 
-/* Read contents from block indexed by `key`
+/**
+ * Read contents from block indexed by `key`
  */
 inline block UnifiedRepositoryFacade::read(int key) {
   return access_map.at(key)->read(key);
 }
 
-/* Export a static representation of the current stored state (for debug and
+/**
+ * Export a static representation of the current stored state (for debug and
  * logging purposes)
  */
 inline std::map<int, block> UnifiedRepositoryFacade::dump() {
@@ -324,7 +340,9 @@ inline std::map<int, block> UnifiedRepositoryFacade::dump() {
   return l;
 }
 
-/* Clear locally cached data for block identified by `key` (remote only) */
+/**
+ * Clear locally cached data for block identified by `key` (remote only)
+ */
 inline void UnifiedRepositoryFacade::invalidate_cache(int key) {
   std::vector<int> local_blocks =
       mem_map.at(registry_get(GlobalRegistryIndex::WorldRank));

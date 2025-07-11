@@ -3,11 +3,13 @@
 #include <chrono>
 #include <iostream>
 
-/* Creates a directory from (relative) `path`)
+/**
+ * Creates a directory from (relative) `path`)
  */
 void create_directory(const std::string &path);
 
-/* Returns UNIX-time epoch string
+/**
+ * Returns UNIX-time epoch string
  */
 std::string currentUnixTime();
 

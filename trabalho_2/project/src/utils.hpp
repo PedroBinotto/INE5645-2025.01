@@ -14,7 +14,8 @@
 #include <string>
 #include <vector>
 
-/* Formats `std::vector<T>` to pretty-print friendly representation
+/**
+ * Formats `std::vector<T>` to pretty-print friendly representation
  */
 template <typename T>
 inline std::string print_vec(const std::vector<T> &list,
@@ -26,7 +27,8 @@ inline std::string print_vec(const std::vector<T> &list,
   return msg;
 }
 
-/* Formats `types::block` (of length BLOCK_SIZE) to pretty-print friendly
+/**
+ * Formats `types::block` (of length BLOCK_SIZE) to pretty-print friendly
  * representation
  */
 inline std::string print_block(const block &b) {
@@ -37,7 +39,8 @@ inline std::string print_block(const block &b) {
   return msg;
 }
 
-/* Formats byte arrays of variable size to pretty-print friendly representation
+/**
+ * Formats byte arrays of variable size to pretty-print friendly representation
  */
 inline std::string print_block(std::shared_ptr<uint8_t[]> b, int size) {
   std::string msg;
@@ -47,7 +50,8 @@ inline std::string print_block(std::shared_ptr<uint8_t[]> b, int size) {
   return msg;
 }
 
-/* Resolves params (TIMESTAMP, BLOCK_SIZE, NUM_BLOCKS) from `stdin` or returns
+/**
+ * Resolves params (TIMESTAMP, BLOCK_SIZE, NUM_BLOCKS) from `stdin` or returns
  * default values when not informed.
  *
  * Exits with error status if invalid input is passed in.
@@ -111,16 +115,19 @@ inline program_args capture_args(int argc, const char **argv,
   }
 }
 
-/* Compute number of "worker" processes, that is, instances that act as memory
+/**
+ * Compute number of "worker" processes, that is, instances that act as memory
  * block maintainers and perform read/write operations
  */
 inline int get_num_worker_procs(int world_size) { return world_size - 1; }
 
-/* Get the world rank of the broadcaster instance
+/**
+ * Get the world rank of the broadcaster instance
  */
 inline int get_broadcaster_proc_rank(int world_size) { return world_size - 1; }
 
-/* Validates parameters interpreted from `stdin` according to application
+/**
+ * Validates parameters interpreted from `stdin` according to application
  * logic.
  *
  * Exits with error status if invalid input is passed in.
@@ -166,7 +173,8 @@ inline void validate_args(program_args &args, int world_size,
         MAX_BLOCK_SIZE));
 }
 
-/* Determines if process instance should produce verbose output.
+/**
+ * Determines if process instance should produce verbose output.
  *
  * To maintain clarity and readability in the output, only process rank 0
  * should display the major lifecycle admonitions.
@@ -175,7 +183,8 @@ inline bool is_verbose(int world_rank) {
   return world_rank == MASTER_INSTANCE_ID;
 }
 
-/* Resolves the `memory_map` representing the memory block distribution
+/**
+ * Resolves the `memory_map` representing the memory block distribution
  * between the program instances
  */
 inline memory_map resolve_maintainers() {
@@ -191,14 +200,16 @@ inline memory_map resolve_maintainers() {
   return assignment;
 }
 
-/* Resolves the maintainer process' ID based on the desired block
+/**
+ * Resolves the maintainer process' ID based on the desired block
  */
 inline int resolve_maintainer(int key) {
   return key %
          get_num_worker_procs(registry_get(GlobalRegistryIndex::WorldSize));
 }
 
-/* Calculates the total size (in bytes) of a WRITE message buffer, considering
+/**
+ * Calculates the total size (in bytes) of a WRITE message buffer, considering
  * the following buffer layout:
  *
  * `[ int target_index {sizeof(int) bytes} ][ block data {BLOCK_SIZE bytes} ]`
@@ -209,7 +220,8 @@ inline int get_total_write_message_buffer_size() {
 
 // clang-format off
 
-/* Calculates the total size (in bytes) of a NOTIFICATION message buffer,
+/**
+ * Calculates the total size (in bytes) of a NOTIFICATION message buffer,
  * considering the following buffer layout:
  *
  * `[ int target_index {sizeof(int) bytes} ][ long timestamp {sizeof(long) bytes} ]`
@@ -219,7 +231,8 @@ inline int get_total_notification_message_buffer_size() {
   return sizeof(int) + sizeof(long);
 }
 
-/* Encodes a WRITE message from `WriteMessageBuffer` to the buffer layout:
+/**
+ * Encodes a WRITE message from `WriteMessageBuffer` to the buffer layout:
  *
  * `[ int target_index {sizeof(int) bytes} ][ block data {BLOCK_SIZE bytes} ]`
  */
@@ -244,7 +257,8 @@ encode_write_message(WriteMessageBuffer &message) {
   return message_buffer;
 }
 
-/* Decodes a WRITE message to `WriteMessageBuffer`, from  the buffer layout:
+/**
+ * Decodes a WRITE message to `WriteMessageBuffer`, from  the buffer layout:
  *
  * `[ int target_index {sizeof(int) bytes} ][ block data {BLOCK_SIZE bytes} ]`
  */
@@ -279,7 +293,8 @@ decode_write_message(std::shared_ptr<uint8_t[]> message_buffer) {
 
 // clang-format off
 
-/* Encodes a NOTIFICATION message from `NotificationMessageBuffer` to the
+/**
+ * Encodes a NOTIFICATION message from `NotificationMessageBuffer` to the
  * buffer layout:
  *
  * `[ int target_index {sizeof(int) bytes} ][ long timestamp {sizeof(long) bytes} ]`
@@ -307,7 +322,8 @@ encode_notification_message(NotificationMessageBuffer &message) {
 
 // clang-format off
 
-/* Decodes a NOTIFICATION message to `NotificationMessageBuffer`, from  the buffer layout:
+/**
+ * Decodes a NOTIFICATION message to `NotificationMessageBuffer`, from  the buffer layout:
  *
  * `[ int target_index {sizeof(int) bytes} ][ long timestamp {sizeof(long) bytes} ]`
  */

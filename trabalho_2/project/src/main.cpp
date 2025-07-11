@@ -51,21 +51,25 @@ int le(int posicao, std::shared_ptr<uint8_t[]> buffer, int tamanho);
 // FUNÇÕES ESPECIFICADAS NO ENUNCIADO DO TRABALHO
 // *****************************************************************************
 
-/* Starts all server threads and returns them `server_threads`:
+/**
+ * Starts all server threads and returns them `server_threads`:
  */
 server_threads start_helper_treads(memory_map mem_map,
                                    UnifiedRepositoryFacade &repo);
 
-/* Implements worker operations
+/**
+ * Implements worker operations
  */
 void worker_proc(memory_map mem_map, std::string processor_name, int block_size,
                  int num_blocks, int world_rank, int world_size);
 
-/* Implements broadcaster operations
+/**
+ * Implements broadcaster operations
  */
 void broadcaster_proc();
 
-/* Helper function to register state changes
+/**
+ * Helper function to register state changes
  */
 std::string dump_current_state(UnifiedRepositoryFacade &repo);
 

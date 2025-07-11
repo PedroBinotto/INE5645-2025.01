@@ -13,7 +13,8 @@ enum class GlobalRegistryIndex {
   LogLevel,
 };
 
-/* Provides easy (read-only) static access to an instance-scoped immutable set
+/**
+ * Provides easy (read-only) static access to an instance-scoped immutable set
  * of attributes
  */
 class GlobalRegistry {
@@ -22,17 +23,20 @@ protected:
                  int timestamp, int log_level);
 
 public:
-  /* Read entry from the registry
+  /**
+   * Read entry from the registry
    */
   int get(GlobalRegistryIndex key);
 
-  /* Creates and returns the global registry instance
+  /**
+   * Creates and returns the global registry instance
    */
   static std::shared_ptr<GlobalRegistry>
   get_instance(int world_rank, int world_size, int num_blocks, int block_size,
                int timestamp, int log_level);
 
-  /* Provides access to the global registry instance
+  /**
+   * Provides access to the global registry instance
    */
   static std::shared_ptr<GlobalRegistry> get_instance();
 
@@ -41,7 +45,8 @@ private:
   std::map<GlobalRegistryIndex, int> data;
 };
 
-/* Wrapper around static method call to `GlobalRegistry::get`
+/**
+ * Wrapper around static method call to `GlobalRegistry::get`
  */
 inline int registry_get(GlobalRegistryIndex key) {
   return GlobalRegistry::get_instance()->get(key);
