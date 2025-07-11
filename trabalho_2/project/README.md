@@ -17,7 +17,7 @@ Link para o vídeo de apresentação do trabalho: [Google Drive](https://drive.g
 - Este projeto utiliza o framework [OpenMPI](https://www.open-mpi.org/); se necessário, instalar através do gerenciador de pacotes do seu sistema operacional (ex.: Debian/Ubuntu, dependências de dev: `libopenmpi-dev`):
 
 ```bash
-sudo apt-get install openmpi libopenmpi-dev
+sudo apt-get install openmpi-bin libopenmpi-dev
 ```
 
 ### Build
