@@ -135,7 +135,7 @@ Ao alterar este valor, o comando `make run` apresentará diferenças no comporta
 
 #### Opções de _debug_
 
-O Makefile incluído também oferece opções de _debug_ para que permitem analisar o código em execução com mais observabilidade (para desenvolvimento/estudo do programa). Para habilitar o modo de _debug_, basta _des-comentar_ a linha do arquivo que define as _flags_ usadas para depurar o programa; da mesma forma, pode-se alterar o nível de _logging_ do programa através do atributo `LOG_LEVEL`:
+O Makefile incluído também oferece opções de _debug_ para que permitem executar o código com mais observabilidade (para desenvolvimento/estudo do programa). Para habilitar o modo de _debug_, basta _des-comentar_ a linha do arquivo que define as _flags_ usadas para depurar o programa; da mesma forma, pode-se alterar o nível de _logging_ do programa através do atributo `LOG_LEVEL` (os _logs_ serão direcionados ao `stdout` e também serão armazenados no diretório `logs/`):
 
 ```make
 ...
@@ -156,6 +156,8 @@ LOG_LEVEL := 2
 ```
 
 Por padrão, habilitar o modo de _debug_ instanciará uma janela de terminal executando o [GDB](https://www.sourceware.org/gdb/) para cada processo inicializado pelo MPI, mas este comportamento pode ser ajustado alterando os conteúdos do Makefile.
+
+Para ajustes mais avançados, também é possível alterar os valores em `src/constants.hpp` para alterar o ritmo de execução das instruções (através do intervalo de "descanso" das threads), o número máximo de blocos ou o tamanho máximo dos blocos, por exemplo.
 
 ## Ambiente de desenvolvimento
 

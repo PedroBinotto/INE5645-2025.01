@@ -11,7 +11,7 @@ void create_directory(const std::string &path);
 /**
  * Returns UNIX-time epoch string
  */
-std::string currentUnixTime();
+std::string current_unix_time();
 
 std::shared_ptr<ThreadSafeLogger> ThreadSafeLogger::instance{nullptr};
 
@@ -22,7 +22,7 @@ void ThreadSafeLogger::log(std::string msg) {
     return;
 
   std::lock_guard<std::mutex> lock(mtx);
-  std::string log_entry = std::format("[{0}] {1}", currentUnixTime(), msg);
+  std::string log_entry = std::format("[{0}] {1}", current_unix_time(), msg);
   std::cout << log_entry << std::endl;
   logfile << log_entry << std::endl;
 }
@@ -77,7 +77,7 @@ void create_directory(const std::string &path) {
   }
 }
 
-std::string currentUnixTime() {
+std::string current_unix_time() {
   return std::to_string(std::chrono::duration_cast<std::chrono::seconds>(
                             std::chrono::system_clock::now().time_since_epoch())
                             .count());
