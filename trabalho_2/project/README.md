@@ -14,10 +14,10 @@ Link para o vídeo de apresentação do trabalho: [Google Drive](https://drive.g
 
 ### Pré-requisitos
 
-- Este projeto utiliza o framework [OpenMPI](https://www.open-mpi.org/); se necessário, instalar através do gerenciador de pacotes do seu sistema operacional (ex.: Debian/Ubuntu, dependências de dev: `libopenmpi-dev`):
+- Este projeto utiliza [C++20](https://en.cppreference.com/w/cpp/20.html) e o framework [OpenMPI](https://www.open-mpi.org/); se necessário, instalar através do gerenciador de pacotes do seu sistema operacional (ex.: Debian/Ubuntu, dependências de dev: `libopenmpi-dev`):
 
 ```bash
-sudo apt-get install openmpi-bin libopenmpi-dev
+sudo apt-get install g++ openmpi-bin libopenmpi-dev
 ```
 
 ### Build
