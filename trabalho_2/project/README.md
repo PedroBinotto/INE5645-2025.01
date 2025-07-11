@@ -43,8 +43,8 @@ pedro@machine ➜ project (main) make
 
 ```bash
 pedro@machine ➜ project (main) make build
-mpic++ -std=c++17 -Wall -Wextra -g -pedantic  -c src/main.cpp -o obj/main.o
-mpic++ -std=c++17 -Wall -Wextra -g -pedantic  obj/main.o -o bin/distributed
+mpic++ -std=c++20 -Wall -Wextra -g -O0 -pedantic  -c src/logger.cpp -o obj/logger.o
+mpic++ -std=c++20 -Wall -Wextra -g -O0 -pedantic  obj/logger.o obj/main.o obj/servers.o obj/store.o -o bin/distributed
 ```
 
 ---
@@ -53,7 +53,7 @@ mpic++ -std=c++17 -Wall -Wextra -g -pedantic  obj/main.o -o bin/distributed
 
 ```bash
 pedro@machine ➜ project (main) make run
-mpirun -n 5 bin/distributed
+mpirun -n 5 xterm -e gdb catch throw -ex "break std::terminate" -ex "run" --args bin/distributed 2 1752201185
 Hello world from processor machine, rank 1 out of 5 processors
 ...
 ```
@@ -71,8 +71,6 @@ Através do Make, podem ser informados segundo à seguinte sintaxe:
 
 ```bash
 pedro@machine ➜ project (main) make run ARGS="<arg1, arg2 ...>"
-./bin/distributed
-Hello!
 ```
 
 Em tal caso os argumentos devem ser informados na ordem correta:
@@ -93,11 +91,11 @@ ex.:
 
 ```bash
 pedro@machine ➜ project (main) make run ARGS="10"
-mpirun -n 5 bin/distributed 10
+mpirun -n 5 xterm -e gdb catch throw -ex "break std::terminate" -ex "run" --args bin/distributed 2 1752201185 10
 ...
 
 pedro@machine ➜ project (main) make run ARGS="10 10"
-mpirun -n 5 bin/distributed 10 10
+mpirun -n 5 bin/distributed 2 1752201185 10 10
 ...
 ```
 
@@ -135,7 +133,7 @@ Ao alterar este valor, o comando `make run` apresentará diferenças no comporta
 
 #### Opções de _debug_
 
-O Makefile incluído também oferece opções de _debug_ para que permitem executar o código com mais observabilidade (para desenvolvimento/estudo do programa). Para habilitar o modo de _debug_, basta _des-comentar_ a linha do arquivo que define as _flags_ usadas para depurar o programa; da mesma forma, pode-se alterar o nível de _logging_ do programa através do atributo `LOG_LEVEL` (os _logs_ serão direcionados ao `stdout` e também serão armazenados no diretório `logs/`):
+O Makefile incluído também oferece opções de _debug_ para que permitem executar o código com mais observabilidade (para desenvolvimento/estudo do programa). Para habilitar o modo de _debug_, basta _descomentar_ a linha do arquivo que define as _flags_ usadas para depurar o programa; da mesma forma, pode-se alterar o nível de _logging_ do programa através do atributo `LOG_LEVEL` (os _logs_ serão direcionados ao `stdout` e também serão armazenados no diretório `logs/`):
 
 ```make
 ...
@@ -157,11 +155,20 @@ LOG_LEVEL := 2
 
 Por padrão, habilitar o modo de _debug_ instanciará uma janela de terminal executando o [GDB](https://www.sourceware.org/gdb/) para cada processo inicializado pelo MPI, mas este comportamento pode ser ajustado alterando os conteúdos do Makefile.
 
-Para ajustes mais avançados, também é possível alterar os valores em `src/constants.hpp` para alterar o ritmo de execução das instruções (através do intervalo de "descanso" das threads), o número máximo de blocos ou o tamanho máximo dos blocos, por exemplo.
+Para ajustes mais avançados, também é possível alterar os valores em [`src/constants.hpp`](https://github.com/PedroBinotto/INE5645-2025.01/blob/93d0c11e6c2cec2cfd88c4d07d288495dcbdab2e/trabalho_2/project/src/constants.hpp) para alterar o ritmo de execução das instruções (através do intervalo de "descanso" das threads), o número máximo de blocos ou o tamanho máximo dos blocos, por exemplo:
+
+```c
+#define DEFAULT_BLOCK_SIZE 8
+#define DEFAULT_NUM_BLOCKS 4
+#define MAX_BLOCK_SIZE 32
+#define MAX_NUM_BLOCKS 32
+#define OPERATION_SLEEP_INTERVAL_MILLIS 1000
+...
+```
 
 ## Ambiente de desenvolvimento
 
-O processo de configuração do LSP ([clangd](https://clangd.llvm.org/)) para adequadamente incluir os artefatos MPI para consulta no editor de texto, foi necessário gerar um arquivo `compile_commands.json` através da ferramenta [Bear](https://github.com/rizsotto/Bear):
+O processo de configuração do LSP ([clangd](https://clangd.llvm.org/)) para adequadamente incluir os artefatos MPI para consulta no editor de texto, foi necessário gerar um arquivo `compile_commands.json` (pode ser feito através da ferramenta [CMake](https://cmake.org/) ou [Bear](https://github.com/rizsotto/Bear)):
 
 ```bash
 # pwd: INE5645-2025.01/trabalho_2/project
