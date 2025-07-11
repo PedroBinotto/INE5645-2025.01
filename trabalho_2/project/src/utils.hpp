@@ -366,4 +366,13 @@ inline block get_random_block() {
   return buffer;
 }
 
+inline block get_random_block(int size) {
+  block buffer = std::make_shared<uint8_t[]>(size);
+
+  for (int i = 0; i < size; i++)
+    buffer[i] = rand() % 256;
+
+  return buffer;
+}
+
 #endif

@@ -25,8 +25,8 @@
  *
  * @param posicao Indica a posição inicial da memória de onde se pretende
  * escrever algum conteúdo;
- * @param buffer Indica a posição inicial da memória de onde se pretende
- * escrever algum conteúdo;
+ * @param buffer Indica o endereço da variável que contém o conteúdo a ser
+ * escrito no espaço de endereçamento;
  * @param tamanho Indica o número em bytes a serem escritos na operação (ou
  * seja, o número de bytes em buffer, a partir da posição `posicao`);
  * @return valor de retorno inteiro (`int`) deve representar códigos de erro, na
@@ -54,8 +54,8 @@ int le(int posicao, std::shared_ptr<uint8_t[]> buffer, int tamanho);
 /**
  * Starts all server threads and returns them `server_threads`:
  */
-server_threads start_helper_treads(memory_map mem_map,
-                                   UnifiedRepositoryFacade &repo);
+server_threads start_helper_threads(memory_map mem_map,
+                                    UnifiedRepositoryFacade &repo);
 
 /**
  * Implements worker operations
@@ -131,7 +131,7 @@ void worker_proc(memory_map mem_map, std::string processor_name, int block_size,
   repository = UnifiedRepositoryFacade(mem_map, block_size, world_rank);
 
   server_threads threads =
-      start_helper_treads(mem_map, std::ref(repository.value()));
+      start_helper_threads(mem_map, std::ref(repository.value()));
 
   thread_safe_log_with_id("Started helper threads");
 
@@ -143,13 +143,15 @@ void worker_proc(memory_map mem_map, std::string processor_name, int block_size,
 
   while (true) {
     int target_block = rng() % num_blocks;
+    int size = rng() % ((num_blocks - target_block) * block_size);
 
     if (rng() % 2) {
-      escreve(target_block, get_random_block(), 1);
+      std::shared_ptr<uint8_t[]> buffer = get_random_block(size);
+      escreve(target_block, buffer, size);
     } else {
       std::shared_ptr<uint8_t[]> result_buffer =
-          std::make_shared<uint8_t[]>(block_size);
-      le(target_block, result_buffer, 1);
+          std::make_shared<uint8_t[]>(size);
+      le(target_block, result_buffer, size);
     }
 
     std::this_thread::sleep_for(
@@ -172,8 +174,8 @@ void broadcaster_proc() {
   t.join();
 }
 
-server_threads start_helper_treads(memory_map mem_map,
-                                   UnifiedRepositoryFacade &repo) {
+server_threads start_helper_threads(memory_map mem_map,
+                                    UnifiedRepositoryFacade &repo) {
   return std::make_tuple(
       std::thread(read_listener, mem_map, std::ref(repo)),
       std::thread(write_listener, mem_map, std::ref(repo)),
@@ -182,7 +184,7 @@ server_threads start_helper_treads(memory_map mem_map,
 
 std::string dump_current_state(UnifiedRepositoryFacade &repo) {
   int num_blocks = registry_get(GlobalRegistryIndex::NumBlocks);
-  std::string s;
+  std::string s = "\n";
   std::map<int, block> state = repo.dump();
 
   auto transform = [&](const std::pair<int, block> &p) {
@@ -198,14 +200,40 @@ std::string dump_current_state(UnifiedRepositoryFacade &repo) {
 }
 
 int escreve(int posicao, std::shared_ptr<uint8_t[]> buffer, int tamanho) {
-  repository->write(posicao, buffer);
-  thread_safe_log_with_id(std::format(
-      "Performing READ operation to block {0} at `main` level", posicao));
+  int num_blocks = registry_get(GlobalRegistryIndex::NumBlocks);
+  int block_size = registry_get(GlobalRegistryIndex::BlockSize);
+  int scoped_blocks = std::ceil(static_cast<double>(tamanho) / block_size);
+  int final_pos = posicao + scoped_blocks;
+
+  if (final_pos > num_blocks)
+    return 1;
+
+  for (int i = 0; i < scoped_blocks; i++) {
+    block new_buf = std::make_shared<uint8_t[]>(block_size);
+    std::memcpy(new_buf.get(), buffer.get() + (i * block_size), block_size);
+    repository->write(posicao + i, new_buf);
+    thread_safe_log_with_id(std::format(
+        "Performing WRITE operation to block {0} at `main` level", posicao));
+  }
+
   return 0;
 }
+
 int le(int posicao, std::shared_ptr<uint8_t[]> buffer, int tamanho) {
-  repository->read(posicao);
-  thread_safe_log_with_id(std::format(
-      "Performing WRITE operation to block {0} at `main` level ", posicao));
+  int num_blocks = registry_get(GlobalRegistryIndex::NumBlocks);
+  int block_size = registry_get(GlobalRegistryIndex::BlockSize);
+  int scoped_blocks = std::ceil(static_cast<double>(tamanho) / block_size);
+  int final_pos = posicao + scoped_blocks;
+
+  if (final_pos > num_blocks)
+    return 1;
+
+  for (int i = 0; i < scoped_blocks; i++) {
+    block result = repository->read(posicao + i);
+    std::memcpy(buffer.get() + (i * block_size), result.get(), block_size);
+    thread_safe_log_with_id(std::format(
+        "Performing READ operation to block {0} at `main` level", posicao));
+  }
+
   return 0;
 }
