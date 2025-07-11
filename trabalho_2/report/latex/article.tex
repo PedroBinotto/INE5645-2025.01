@@ -271,10 +271,10 @@ A comunicação entre processos é dividida em dois tipos principais (\texttt{li
         (\texttt{MPI\_Send} com a \textit{tag} \texttt{MESSAGE\_TAG\_BLOCK\_READ\_REQUEST} e o ID do bloco desejado) que
         será interpretada pela \textit{thread} \texttt{read} do processo remoto, e recebe o
         \textit{receive} de confirmação. Após isso, o processo \textit{maintainer} do bloco solicitado realiza um
-        \texttt{MPI\_Send} com a \textit{tag} \texttt{MESSAGE\_TAG\_BLOCK\_READ\_RESPONSE} e o conteúdo do bloco solicitado;
+        \texttt{MPI\_Send} com a \textit{tag} \\ \texttt{MESSAGE\_TAG\_BLOCK\_READ\_RESPONSE} e o conteúdo do bloco solicitado;
       \item[Operações de escrita:] As operações de \textit{escrita} remota (de um processo para o bloco mantido por
         outro) são realizadas através de dois pares send/receive: o processo solicitante envia uma requisição
-        (\texttt{MPI\_Send} com a \textit{tag} \texttt{MESSAGE\_TAG\_BLOCK\_WRITE\_REQUEST} e o ID e \textit{bytes} para
+        (\texttt{MPI\_Send} com a \textit{tag} \\ \texttt{MESSAGE\_TAG\_BLOCK\_WRITE\_REQUEST} e o ID e \textit{bytes} para
         escrever no bloco desejado) que será interpretada pela \textit{thread} \texttt{read} do processo remoto, e recebe
         o \textit{receive} de confirmação. Após isso, o processo \textit{maintainer} do bloco solicitado realiza um a 
         escrita dos dados e solicita uma notificação de atualização ao processo \textit{broadcaster};
@@ -343,7 +343,49 @@ diferentes processos conforme a execução do código progride.
 \end{lstlisting}
 
 \subsection{Cenários de teste e casos críticos}
-\paragraph{}
+\subsubsection{Testes de funcionalidade básica}
+\paragraph{Descrição:} Verificar se o sistema inicializa corretamente com diferentes configurações de número de processos, tamanho de blocos e número total de blocos. A distribuição round-robin dos blocos para os processos worker deve ser observada.
+
+\paragraph{Procedimento:}
+\begin{itemize}
+  \item Compilar o projeto: \texttt{make build};
+  \item Executar o sistema com parâmetros padrão (4 processos \textit{worker} + 1 processo \textit{broadcaster});
+  \item Verificar a distribuição dos blocos entre os processos \textit{worker} nos \textit{logs} iniciais;
+  \item Repetir com diferentes configurações:
+  \begin{itemize}
+    \item \texttt{make run N\_PROCS=4 ARGS="16 8"} (4 workers, 1 broadcaster, blocos de 16 bytes, 8 blocos totais);
+    \item \texttt{make run N\_PROCS=6 ARGS="8 16"} (6 workers, 1 broadcaster, blocos de 8 bytes, 16 blocos totais);
+  \end{itemize}
+\end{itemize}
+
+\paragraph{Resultados Esperados:}
+\begin{itemize}
+  \item O sistema deve inicializar sem erros em todas as configurações;
+  \item Os \textit{logs} de cada processo (proc-X\_output.log) devem mostrar mensagens de inicialização bem-sucedidas;
+  \item O \textit{dump} de memória (se logado) deve indicar que os blocos foram distribuídos corretamente via
+    round-robin entre os processos \textit{worker};
+  \item \texttt{LocalRepository} de cada \textit{worker} deve logar a inicialização de seus blocos proprietários, e
+    \texttt{RemoteRepository} deve inicializar suas entradas de \textit{cache} iniciais como \texttt{nullptr};
+\end{itemize}
+
+\paragraph{Descrição:} Verificar se as operações de \texttt{le} e \texttt{escreve} funcionam corretamente quando
+acessando blocos mantidos pelo próprio processo (\textit{worker}).
+
+\paragraph{Procedimento:}
+\begin{itemize}
+  \item Configurar o \texttt{Makefile} para \texttt{N\_PROCS=4};
+  \item Executar o sistema: \texttt{make run ARGS="8 8"} (4 processos \textit{worker}, 8 blocos de 8 \texttt{bytes}).
+  \item No \texttt{main.cpp} (dentro de \texttt{worker\_proc}), garantir que haja operações de escrita e leitura em
+    blocos dos quais o processo é proprietário, assim como operações de remotas (leitura e escrita, também; ex: processo
+    rank 0 escreve e lê em bloco 0, bloco 1... bloco N);
+  \item Observar os logs gerados (nível de log 2 para verbosidade máxima).
+\end{itemize}
+
+\paragraph{Resultados Esperados:}
+\begin{itemize}
+  \item As operações de leitura e escrita em blocos locais (\texttt{LocalRepository::read}, \texttt{LocalRepository::write}) devem ser bem-sucedidas.
+  \item As operações de leitura e escrita em blocos remotos (\texttt{RemoteRepository::read}, \texttt{RemoteRepository::write}) devem ser bem-sucedidas.
+\end{itemize}
 
 \newpage
 \section{Bibliografia}
