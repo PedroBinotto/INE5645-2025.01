@@ -135,19 +135,24 @@ Ao alterar este valor, o comando `make run` apresentará diferenças no comporta
 
 #### Opções de _debug_
 
-O Makefile incluído também oferece opções de _debug_ para que permitem analisar o código em execução com mais observabilidade (para desenvolvimento/estudo do programa). Para habilitar o modo de _debug_, basta _des-comentar_ a linha do arquivo que define as _flags_ usadas para depurar o programa:
+O Makefile incluído também oferece opções de _debug_ para que permitem analisar o código em execução com mais observabilidade (para desenvolvimento/estudo do programa). Para habilitar o modo de _debug_, basta _des-comentar_ a linha do arquivo que define as _flags_ usadas para depurar o programa; da mesma forma, pode-se alterar o nível de _logging_ do programa através do atributo `LOG_LEVEL`:
 
 ```make
-# ...
-BINDIR := bin
-LOGDIR := log
-TARGET := $(BINDIR)/$(APPNAME)
-# DEBUG_OPTIONS := xterm -hold -e gdb catch throw -ex run --args
-# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+...
 
-SRCS := $(wildcard $(SRCDIR)/*.cpp)
-OBJS := $(patsubst $(SRCDIR)/%.cpp,$(OBJDIR)/%.o,$(SRCS))
-# ...
+# Uncomment to enable DEBUG mode
+DEBUG_OPTIONS := xterm -e gdb catch throw -ex "break std::terminate" -ex "run" --args
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+# Defines logging behaviour; must be one of:
+# * 0 - Will log only the startup messages and errors
+# * 1 - Will log operations such as READ, WRITE, MPI_Send, etc.
+# * 2 - Will log operations and dump application state at every main thread iteration
+LOG_LEVEL := 2
+# ^^^^^^^^^^^^
+
+# "USER-LEVEL" CONFIGURATION SECTION ENDS HERE! DO NOT EDIT CODE BEYOND THIS LINE UNLESS YOU KNOW WHAT YOU ARE DOING
+# **********************************************************************************************************************
 ```
 
 Por padrão, habilitar o modo de _debug_ instanciará uma janela de terminal executando o [GDB](https://www.sourceware.org/gdb/) para cada processo inicializado pelo MPI, mas este comportamento pode ser ajustado alterando os conteúdos do Makefile.
